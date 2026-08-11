@@ -3,32 +3,15 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-import networkx as nx
 from pathlib import Path
 
 
 # ============================================================
-# TRUSTLENS
-# AI-POWERED SOCIAL MEDIA AUTHENTICITY &
-# RECOMMENDATION SECURITY ANALYZER
-# ============================================================
-
-
-# ============================================================
-# 1. PROJECT PATH
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent
-
-DATA_DIR = BASE_DIR / "src" / "data"
-
-
-# ============================================================
-# 2. PAGE CONFIGURATION
+# PAGE CONFIGURATION
 # ============================================================
 
 st.set_page_config(
-    page_title="TrustLens Intelligence",
+    page_title="TrustLens",
     page_icon="🛡️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -36,521 +19,513 @@ st.set_page_config(
 
 
 # ============================================================
-# 3. CUSTOM CSS
+# CUSTOM CSS
 # ============================================================
 
-st.markdown(
-    """
-    <style>
+st.markdown("""
+<style>
 
-    /* Main background */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    .stApp {
-        background:
-        radial-gradient(
-            circle at 20% 10%,
-            rgba(40, 80, 140, 0.12),
-            transparent 35%
-        ),
-        radial-gradient(
-            circle at 80% 20%,
-            rgba(100, 50, 150, 0.10),
-            transparent 35%
-        ),
-        #080b12;
-    }
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.stApp {
+    background:
+        radial-gradient(circle at 10% 10%, rgba(30, 100, 255, 0.10), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(120, 60, 255, 0.08), transparent 30%),
+        #080d18;
+    color: #f5f7fb;
+}
 
 
-    /* Main content */
+/* Sidebar */
 
-    .block-container {
-        padding-top: 1.5rem;
-        padding-bottom: 3rem;
-        max-width: 1500px;
-    }
+section[data-testid="stSidebar"] {
+    background: linear-gradient(
+        180deg,
+        #0c1322 0%,
+        #080d18 100%
+    );
+    border-right: 1px solid rgba(255,255,255,0.08);
+}
+
+section[data-testid="stSidebar"] * {
+    color: #dce5f7;
+}
 
 
-    /* Header */
+/* Main container */
 
-    .hero {
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 3rem;
+    max-width: 1500px;
+}
 
-        padding: 25px 30px;
 
-        border-radius: 18px;
+/* Hero */
 
-        background:
+.hero {
+    background:
         linear-gradient(
             135deg,
-            rgba(20, 28, 45, 0.95),
-            rgba(12, 16, 27, 0.95)
+            rgba(21, 35, 65, 0.95),
+            rgba(11, 18, 33, 0.95)
         );
-
-        border: 1px solid rgba(255,255,255,0.08);
-
-        box-shadow:
-        0 10px 40px rgba(0,0,0,0.35);
-
-        margin-bottom: 25px;
-    }
-
-
-    .hero-title {
-
-        font-size: 44px;
-
-        font-weight: 800;
-
-        letter-spacing: 2px;
-
-        margin-bottom: 5px;
-    }
-
-
-    .hero-subtitle {
-
-        color: #8f9bb3;
-
-        font-size: 17px;
-
-        letter-spacing: 0.5px;
-    }
-
-
-    .status {
-
-        display: inline-block;
-
-        margin-top: 15px;
-
-        padding: 6px 14px;
-
-        border-radius: 20px;
-
-        background: rgba(0, 200, 120, 0.10);
-
-        border: 1px solid rgba(0, 200, 120, 0.30);
-
-        color: #35e09a;
-
-        font-size: 13px;
-
-        font-weight: 600;
-    }
-
-
-    /* KPI cards */
-
-    .kpi {
-
-        padding: 20px;
-
-        border-radius: 15px;
-
-        background:
-        linear-gradient(
-            145deg,
-            rgba(23,30,47,0.95),
-            rgba(12,17,28,0.95)
-        );
-
-        border: 1px solid rgba(255,255,255,0.07);
-
-        min-height: 125px;
-
-        box-shadow:
-        0 8px 25px rgba(0,0,0,0.25);
-    }
-
-
-    .kpi-title {
-
-        color: #8995aa;
-
-        font-size: 13px;
-
-        text-transform: uppercase;
-
-        letter-spacing: 1px;
-    }
-
-
-    .kpi-value {
-
-        font-size: 32px;
-
-        font-weight: 800;
-
-        margin-top: 8px;
-    }
-
-
-    .kpi-description {
-
-        color: #69758a;
-
-        font-size: 12px;
-
-        margin-top: 5px;
-    }
-
-
-    /* Section titles */
-
-    .section-title {
-
-        font-size: 24px;
-
-        font-weight: 700;
-
-        margin-top: 30px;
-
-        margin-bottom: 15px;
-    }
-
-
-    .section-description {
-
-        color: #7f8ba0;
-
-        font-size: 14px;
-
-        margin-bottom: 15px;
-    }
-
-
-    /* Alert cards */
-
-    .alert-card {
-
-        padding: 18px;
-
-        border-radius: 14px;
-
-        background:
-        rgba(255, 70, 70, 0.07);
-
-        border:
-        1px solid rgba(255,70,70,0.20);
-
-        margin-bottom: 10px;
-    }
-
-
-    .warning-card {
-
-        padding: 18px;
-
-        border-radius: 14px;
-
-        background:
-        rgba(255,170,50,0.07);
-
-        border:
-        1px solid rgba(255,170,50,0.20);
-    }
-
-
-    /* Tables */
-
-    [data-testid="stDataFrame"] {
-
-        border-radius: 12px;
-
-        overflow: hidden;
-    }
-
-
-    /* Sidebar */
-
-    section[data-testid="stSidebar"] {
-
-        background:
-        linear-gradient(
-            180deg,
-            #0c111d,
-            #080b12
-        );
-    }
-
-
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+    border: 1px solid rgba(110, 160, 255, 0.18);
+    border-radius: 24px;
+    padding: 42px;
+    margin-bottom: 30px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.30);
+}
+
+.hero-title {
+    font-size: 44px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 10px;
+}
+
+.hero-title span {
+    background: linear-gradient(
+        90deg,
+        #ffffff,
+        #79aaff
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    color: #91a4c4;
+    font-size: 17px;
+    line-height: 1.6;
+    max-width: 800px;
+}
+
+.status {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 24px;
+    padding: 9px 15px;
+    border-radius: 999px;
+    background: rgba(43, 210, 130, 0.08);
+    border: 1px solid rgba(43, 210, 130, 0.25);
+    color: #65e6a3;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    background: #45e493;
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(69,228,147,0.8);
+}
+
+
+/* Section */
+
+.section-title {
+    font-size: 25px;
+    font-weight: 750;
+    margin-top: 15px;
+    margin-bottom: 5px;
+}
+
+.section-subtitle {
+    color: #7f92b3;
+    font-size: 14px;
+    margin-bottom: 22px;
+}
+
+
+/* KPI cards */
+
+.kpi-card {
+    background: linear-gradient(
+        145deg,
+        rgba(24, 34, 55, 0.98),
+        rgba(14, 22, 38, 0.98)
+    );
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 18px;
+    padding: 23px;
+    min-height: 135px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.20);
+}
+
+.kpi-label {
+    color: #8193b3;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.kpi-value {
+    color: #f6f8fc;
+    font-size: 31px;
+    font-weight: 800;
+    margin-top: 10px;
+}
+
+.kpi-description {
+    color: #687d9f;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+
+/* Alert cards */
+
+.alert-card {
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(20,29,47,0.85);
+}
+
+.alert-high {
+    border-left: 4px solid #ff5264;
+}
+
+.alert-medium {
+    border-left: 4px solid #ffbd55;
+}
+
+.alert-low {
+    border-left: 4px solid #4bdc91;
+}
+
+
+/* Info cards */
+
+.info-card {
+    background: rgba(20,29,47,0.80);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 17px;
+    padding: 22px;
+    margin-bottom: 15px;
+}
+
+.info-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.info-text {
+    color: #8799b8;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+
+/* Risk badges */
+
+.risk-high {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,70,90,0.13);
+    color: #ff6b78;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.risk-medium {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255,190,70,0.13);
+    color: #ffc95f;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.risk-low {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(60,220,140,0.13);
+    color: #5ce59d;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+/* Footer */
+
+.footer {
+    text-align: center;
+    color: #536683;
+    font-size: 12px;
+    margin-top: 60px;
+    padding: 25px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+</style>
+""", unsafe_allow_html=True)
 
 
 # ============================================================
-# 4. PLOTLY DARK THEME
+# FILE LOCATIONS
 # ============================================================
 
-PLOT_BG = "#0c111d"
-GRID_COLOR = "rgba(255,255,255,0.06)"
-TEXT_COLOR = "#d9e1ef"
+BASE_DIR = Path(__file__).resolve().parent
+
+DATA_LOCATIONS = [
+    BASE_DIR / "data",
+    BASE_DIR / "src" / "data"
+]
 
 
-def style_plot(fig):
+def find_data_file(filename):
+    """
+    Searches both:
+        TrustLens/data/
+        TrustLens/src/data/
+    """
 
-    fig.update_layout(
+    for directory in DATA_LOCATIONS:
+        path = directory / filename
 
-        paper_bgcolor=PLOT_BG,
+        if path.exists():
+            return path
 
-        plot_bgcolor=PLOT_BG,
-
-        font=dict(
-            color=TEXT_COLOR
-        ),
-
-        margin=dict(
-            l=20,
-            r=20,
-            t=55,
-            b=20
-        ),
-
-        legend=dict(
-            bgcolor="rgba(0,0,0,0)"
-        )
-    )
-
-    fig.update_xaxes(
-        gridcolor=GRID_COLOR
-    )
-
-    fig.update_yaxes(
-        gridcolor=GRID_COLOR
-    )
-
-    return fig
+    return None
 
 
 # ============================================================
-# 5. LOAD DATA
+# DATA LOADER
 # ============================================================
 
 @st.cache_data
 def load_csv(filename):
 
-    path = DATA_DIR / filename
+    path = find_data_file(filename)
 
-    if not path.exists():
-        return pd.DataFrame()
+    if path is None:
+        return None
 
     try:
         return pd.read_csv(path)
-
     except Exception:
-        return pd.DataFrame()
-
-
-scores = load_csv("trustlens_scores.csv")
-
-impact = load_csv("recommendation_impact.csv")
-
-ratings = load_csv("ratings.csv")
-
-users = load_csv("users.csv")
-
-users_scored = load_csv("users_scored.csv")
-
-comments = load_csv("comments.csv")
-
-comments_scored = load_csv("comments_scored.csv")
-
-coordination = load_csv("coordination_events.csv")
-
-graph_features = load_csv("graph_features.csv")
-
-rating_analysis = load_csv("rating_analysis.csv")
-
-recommendation_ranking = load_csv(
-    "recommendation_ranking.csv"
-)
-
-
-# ============================================================
-# 6. SAFETY CHECK
-# ============================================================
-
-if scores.empty:
-
-    st.error(
-        "trustlens_scores.csv could not be loaded."
-    )
-
-    st.info(
-        f"Expected location:\n{DATA_DIR / 'trustlens_scores.csv'}"
-    )
-
-    st.stop()
-
-
-# ============================================================
-# 7. COLUMN DETECTION
-# ============================================================
-
-def find_column(df, names):
-
-    if df.empty:
         return None
 
-    for name in names:
 
-        if name in df.columns:
-            return name
+# ============================================================
+# LOAD ALL DATA
+# ============================================================
+
+scores = load_csv("trustlens_scores.csv")
+users = load_csv("users.csv")
+users_scored = load_csv("users_scored.csv")
+comments = load_csv("comments.csv")
+comments_scored = load_csv("comments_scored.csv")
+ratings = load_csv("ratings.csv")
+rating_analysis = load_csv("rating_analysis.csv")
+items = load_csv("items.csv")
+interactions = load_csv("interactions.csv")
+coordination = load_csv("coordination_events.csv")
+graph_features = load_csv("graph_features.csv")
+recommendation_impact = load_csv("recommendation_impact.csv")
+recommendation_ranking = load_csv("recommendation_ranking.csv")
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def first_existing_column(df, candidates):
+
+    if df is None:
+        return None
+
+    for col in candidates:
+        if col in df.columns:
+            return col
 
     return None
 
 
-USER = find_column(
-    scores,
-    ["user_id", "userid", "user"]
-)
+def safe_numeric(df, column):
 
-RISK = find_column(
-    scores,
-    ["risk_score", "risk"]
-)
+    if df is None or column not in df.columns:
+        return pd.Series(dtype=float)
 
-RISK_LEVEL = find_column(
-    scores,
-    ["risk_level", "risk_category"]
-)
-
-BOT = find_column(
-    scores,
-    ["bot_score", "bot_risk"]
-)
-
-SPAM = find_column(
-    scores,
-    ["spam_score", "spam_risk"]
-)
-
-DUPLICATE = find_column(
-    scores,
-    ["duplicate_score", "duplicate_risk"]
-)
-
-COORDINATION = find_column(
-    scores,
-    ["coordination_score", "coordination_risk"]
-)
-
-RATING_ATTACK = find_column(
-    scores,
-    [
-        "rating_attack_score",
-        "rating_attack_risk"
-    ]
-)
-
-CAMPAIGN = find_column(
-    scores,
-    [
-        "campaign_boost",
-        "campaign_score"
-    ]
-)
+    return pd.to_numeric(df[column], errors="coerce").fillna(0)
 
 
-# ============================================================
-# 8. CALCULATE GLOBAL METRICS
-# ============================================================
+def count_column(df, candidates):
 
-TOTAL_USERS = len(scores)
+    col = first_existing_column(df, candidates)
+
+    if col is None:
+        return 0
+
+    return len(df)
 
 
-if RISK_LEVEL:
+def get_risk_column(df):
 
-    risk_series = (
-        scores[RISK_LEVEL]
-        .astype(str)
-        .str.upper()
+    return first_existing_column(
+        df,
+        [
+            "risk_level",
+            "risk",
+            "risk_category"
+        ]
     )
 
-    HIGH_RISK = (
-        risk_series == "HIGH RISK"
-    ).sum()
 
-    MEDIUM_RISK = (
-        risk_series == "MEDIUM RISK"
-    ).sum()
+def get_risk_score_column(df):
 
-    LOW_RISK = (
-        risk_series == "LOW RISK"
-    ).sum()
-
-else:
-
-    HIGH_RISK = 0
-    MEDIUM_RISK = 0
-    LOW_RISK = TOTAL_USERS
+    return first_existing_column(
+        df,
+        [
+            "risk_score",
+            "overall_risk",
+            "score"
+        ]
+    )
 
 
-SUSPICIOUS = HIGH_RISK + MEDIUM_RISK
+def get_user_column(df):
+
+    return first_existing_column(
+        df,
+        [
+            "user_id",
+            "userid",
+            "user"
+        ]
+    )
 
 
-# ============================================================
-# 9. SIDEBAR
-# ============================================================
+def display_dataframe(df, height=430):
 
-st.sidebar.markdown(
-    """
-    <div style="
-        font-size:26px;
-        font-weight:800;
-        padding:10px 0 20px 0;
-    ">
-        🛡️ TrustLens
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+    if df is None or df.empty:
 
-st.sidebar.caption(
-    "Social Integrity Intelligence Platform"
-)
+        st.info("No data available for this section.")
 
-st.sidebar.markdown("---")
+        return
 
-page = st.sidebar.radio(
-    "NAVIGATION",
-    [
-        "◉ Command Center",
-        "◉ Account Intelligence",
-        "◉ Threat Detection",
-        "◉ Coordination Network",
-        "◉ Rating Attack Lab",
-        "◉ Recommendation Security",
-        "◉ Data Explorer"
-    ]
-)
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=height,
+        hide_index=True
+    )
 
-st.sidebar.markdown("---")
 
-st.sidebar.markdown(
-    "**SYSTEM STATUS**"
-)
+def metric_card(label, value, description=""):
 
-st.sidebar.success(
-    "● ANALYSIS ENGINE ONLINE"
-)
+    st.markdown(
+        f"""
+        <div class="kpi-card">
+            <div class="kpi-label">{label}</div>
+            <div class="kpi-value">{value}</div>
+            <div class="kpi-description">{description}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-st.sidebar.caption(
-    f"Users: {TOTAL_USERS:,}"
-)
 
-st.sidebar.caption(
-    f"Suspicious: {SUSPICIOUS:,}"
-)
+def section_header(title, subtitle=""):
 
-st.sidebar.caption(
-    f"High Risk: {HIGH_RISK:,}"
-)
+    st.markdown(
+        f"""
+        <div class="section-title">{title}</div>
+        <div class="section-subtitle">{subtitle}</div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+def risk_color(level):
+
+    level = str(level).upper()
+
+    if "HIGH" in level:
+        return "#ff5969"
+
+    if "MEDIUM" in level:
+        return "#ffc45c"
+
+    return "#55df99"
 
 
 # ============================================================
-# 10. HERO HEADER
+# SIDEBAR
+# ============================================================
+
+with st.sidebar:
+
+    st.markdown(
+        """
+        <div style="
+            font-size:25px;
+            font-weight:800;
+            margin-bottom:5px;
+        ">
+            🛡️ TRUSTLENS
+        </div>
+
+        <div style="
+            color:#7185a6;
+            font-size:12px;
+            margin-bottom:25px;
+        ">
+            Social Platform Security Intelligence
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    page = st.radio(
+        "COMMAND CENTER",
+        [
+            "Overview",
+            "Risk Intelligence",
+            "Account Detection",
+            "Comment Analysis",
+            "Rating Attacks",
+            "Coordination",
+            "Recommendation Impact",
+            "Network Intelligence",
+            "Data Explorer"
+        ]
+    )
+
+    st.markdown("---")
+
+    st.markdown(
+        """
+        <div style="
+            color:#617594;
+            font-size:11px;
+            line-height:1.6;
+        ">
+        TRUSTLENS combines behavioral analysis,
+        anomaly detection, coordination analysis,
+        rating manipulation detection and
+        recommendation-impact analysis.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+# ============================================================
+# HERO
 # ============================================================
 
 st.markdown(
@@ -558,7 +533,7 @@ st.markdown(
     <div class="hero">
 
         <div class="hero-title">
-            🛡️ TRUSTLENS
+            🛡️ TRUST<span>LENS</span>
         </div>
 
         <div class="hero-subtitle">
@@ -567,7 +542,8 @@ st.markdown(
         </div>
 
         <div class="status">
-            ● THREAT ANALYSIS ENGINE ACTIVE
+            <div class="status-dot"></div>
+            THREAT ANALYSIS ENGINE ACTIVE
         </div>
 
     </div>
@@ -577,217 +553,161 @@ st.markdown(
 
 
 # ============================================================
-# PAGE 1 — COMMAND CENTER
+# OVERVIEW
 # ============================================================
 
-if page == "◉ Command Center":
+if page == "Overview":
 
-    st.markdown(
-        '<div class="section-title">'
-        'Command Center'
-        '</div>',
-        unsafe_allow_html=True
+    section_header(
+        "Command Center",
+        "Real-time overview of platform integrity and detected manipulation signals."
     )
 
-    st.markdown(
-        '<div class="section-description">'
-        'Real-time overview of platform integrity and '
-        'detected manipulation signals.'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    total_users = 0
+    high_risk = 0
+    medium_risk = 0
+    rating_attacks = 0
+    suspicious_comments = 0
+    recommendation_changes = 0
 
+    if scores is not None:
 
-    # --------------------------------------------------------
-    # KPI CARDS
-    # --------------------------------------------------------
+        total_users = len(scores)
+
+        risk_col = get_risk_column(scores)
+
+        if risk_col:
+
+            high_risk = (
+                scores[risk_col]
+                .astype(str)
+                .str.upper()
+                .str.contains("HIGH")
+                .sum()
+            )
+
+            medium_risk = (
+                scores[risk_col]
+                .astype(str)
+                .str.upper()
+                .str.contains("MEDIUM")
+                .sum()
+            )
+
+    if rating_analysis is not None:
+        rating_attacks = len(rating_analysis)
+
+    if comments_scored is not None:
+
+        suspicious_col = first_existing_column(
+            comments_scored,
+            [
+                "spam_score",
+                "duplicate_score",
+                "suspicious_score"
+            ]
+        )
+
+        if suspicious_col:
+            suspicious_comments = (
+                pd.to_numeric(
+                    comments_scored[suspicious_col],
+                    errors="coerce"
+                )
+                .fillna(0)
+                > 50
+            ).sum()
+
+    if recommendation_impact is not None:
+        recommendation_changes = len(recommendation_impact)
+
 
     c1, c2, c3, c4, c5 = st.columns(5)
 
-
     with c1:
-
-        st.markdown(
-            f"""
-            <div class="kpi">
-
-                <div class="kpi-title">
-                    Users Analyzed
-                </div>
-
-                <div class="kpi-value">
-                    {TOTAL_USERS:,}
-                </div>
-
-                <div class="kpi-description">
-                    Accounts evaluated
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        metric_card(
+            "USERS ANALYZED",
+            f"{total_users:,}",
+            "Accounts evaluated"
         )
-
 
     with c2:
-
-        st.markdown(
-            f"""
-            <div class="kpi">
-
-                <div class="kpi-title">
-                    High Risk
-                </div>
-
-                <div class="kpi-value"
-                     style="color:#ff4b4b">
-
-                    {HIGH_RISK:,}
-
-                </div>
-
-                <div class="kpi-description">
-                    Critical accounts
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        metric_card(
+            "HIGH RISK",
+            f"{high_risk:,}",
+            "Critical accounts"
         )
-
 
     with c3:
-
-        st.markdown(
-            f"""
-            <div class="kpi">
-
-                <div class="kpi-title">
-                    Medium Risk
-                </div>
-
-                <div class="kpi-value"
-                     style="color:#ffad42">
-
-                    {MEDIUM_RISK:,}
-
-                </div>
-
-                <div class="kpi-description">
-                    Requires monitoring
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        metric_card(
+            "MEDIUM RISK",
+            f"{medium_risk:,}",
+            "Requires monitoring"
         )
-
 
     with c4:
-
-        rating_attacks = 0
-
-        if RATING_ATTACK:
-
-            rating_attacks = (
-                scores[RATING_ATTACK] >= 50
-            ).sum()
-
-
-        st.markdown(
-            f"""
-            <div class="kpi">
-
-                <div class="kpi-title">
-                    Rating Attacks
-                </div>
-
-                <div class="kpi-value">
-                    {rating_attacks:,}
-                </div>
-
-                <div class="kpi-description">
-                    Suspicious rating behavior
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        metric_card(
+            "RATING ATTACKS",
+            f"{rating_attacks:,}",
+            "Suspicious rating events"
         )
-
 
     with c5:
-
-        recommendation_changes = len(
-            impact
-        )
-
-        st.markdown(
-            f"""
-            <div class="kpi">
-
-                <div class="kpi-title">
-                    Recommendation Events
-                </div>
-
-                <div class="kpi-value">
-                    {recommendation_changes:,}
-                </div>
-
-                <div class="kpi-description">
-                    Items analyzed
-                </div>
-
-            </div>
-            """,
-            unsafe_allow_html=True
+        metric_card(
+            "RECOMMENDATION EVENTS",
+            f"{recommendation_changes:,}",
+            "Ranking changes analyzed"
         )
 
 
+    st.markdown("<br>", unsafe_allow_html=True)
+
+
     # --------------------------------------------------------
-    # RISK LANDSCAPE
+    # Risk Distribution
     # --------------------------------------------------------
 
-    st.markdown(
-        '<div class="section-title">'
-        'Risk Landscape'
-        '</div>',
-        unsafe_allow_html=True
+    section_header(
+        "Risk Distribution",
+        "Distribution of accounts across TrustLens risk categories."
     )
 
+    if scores is not None:
 
-    left, right = st.columns([1, 1])
+        risk_col = get_risk_column(scores)
 
+        if risk_col:
 
-    with left:
-
-        if RISK_LEVEL:
-
-            dist = (
-                scores[RISK_LEVEL]
+            risk_counts = (
+                scores[risk_col]
+                .astype(str)
                 .value_counts()
                 .reset_index()
             )
 
-            dist.columns = [
+            risk_counts.columns = [
                 "Risk Level",
-                "Count"
+                "Users"
             ]
 
-            fig = px.pie(
-                dist,
-                names="Risk Level",
-                values="Count",
-                hole=0.62,
-                title="Platform Risk Distribution"
+            fig = px.bar(
+                risk_counts,
+                x="Risk Level",
+                y="Users",
+                text="Users",
+                template="plotly_dark"
             )
 
             fig.update_traces(
-                textposition="outside",
-                textinfo="label+percent"
+                textposition="outside"
             )
 
-            style_plot(fig)
+            fig.update_layout(
+                height=420,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)",
+                margin=dict(l=20, r=20, t=30, b=20)
+            )
 
             st.plotly_chart(
                 fig,
@@ -795,18 +715,97 @@ if page == "◉ Command Center":
             )
 
 
-    with right:
+    # --------------------------------------------------------
+    # Top suspicious users
+    # --------------------------------------------------------
 
-        if RISK:
+    section_header(
+        "Most Suspicious Accounts",
+        "Accounts with the highest combined threat scores."
+    )
+
+    if scores is not None:
+
+        risk_score_col = get_risk_score_column(scores)
+
+        if risk_score_col:
+
+            top = scores.sort_values(
+                risk_score_col,
+                ascending=False
+            ).head(10)
+
+            display_dataframe(top, 400)
+
+
+# ============================================================
+# RISK INTELLIGENCE
+# ============================================================
+
+elif page == "Risk Intelligence":
+
+    section_header(
+        "Risk Intelligence",
+        "Combined threat scoring across multiple manipulation signals."
+    )
+
+    if scores is None:
+
+        st.error("trustlens_scores.csv could not be found.")
+
+    else:
+
+        risk_score_col = get_risk_score_column(scores)
+        risk_col = get_risk_column(scores)
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            metric_card(
+                "AVERAGE RISK",
+                f"{safe_numeric(scores, risk_score_col).mean():.2f}"
+                if risk_score_col else "N/A",
+                "Mean platform risk"
+            )
+
+        with c2:
+            metric_card(
+                "MAX RISK",
+                f"{safe_numeric(scores, risk_score_col).max():.2f}"
+                if risk_score_col else "N/A",
+                "Highest detected risk"
+            )
+
+        with c3:
+            metric_card(
+                "ACCOUNTS",
+                f"{len(scores):,}",
+                "Total analyzed"
+            )
+
+
+        if risk_score_col:
+
+            chart_data = scores.copy()
+
+            chart_data[risk_score_col] = pd.to_numeric(
+                chart_data[risk_score_col],
+                errors="coerce"
+            ).fillna(0)
 
             fig = px.histogram(
-                scores,
-                x=RISK,
+                chart_data,
+                x=risk_score_col,
                 nbins=25,
+                template="plotly_dark",
                 title="Risk Score Distribution"
             )
 
-            style_plot(fig)
+            fig.update_layout(
+                height=430,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
 
             st.plotly_chart(
                 fig,
@@ -814,840 +813,109 @@ if page == "◉ Command Center":
             )
 
 
-    # --------------------------------------------------------
-    # THREAT COMPONENT BREAKDOWN
-    # --------------------------------------------------------
+        st.markdown("### Risk Table")
 
-    st.markdown(
-        '<div class="section-title">'
-        'Threat Signal Breakdown'
-        '</div>',
-        unsafe_allow_html=True
-    )
+        if risk_score_col:
 
+            display_cols = [
+                col for col in [
+                    "user_id",
+                    "bot_score",
+                    "spam_score",
+                    "duplicate_score",
+                    "coordination_score",
+                    "rating_attack_score",
+                    "campaign_boost",
+                    "risk_score",
+                    "risk_level"
+                ]
+                if col in scores.columns
+            ]
 
-    threat_columns = [
-        (BOT, "Bot Activity"),
-        (SPAM, "Spam"),
-        (DUPLICATE, "Duplicate Content"),
-        (COORDINATION, "Coordination"),
-        (RATING_ATTACK, "Rating Attack")
-    ]
-
-
-    threat_data = []
-
-    for col, name in threat_columns:
-
-        if col:
-
-            threat_data.append(
-                {
-                    "Threat": name,
-                    "Average Score":
-                    scores[col].mean()
-                }
-            )
-
-
-    if threat_data:
-
-        threat_df = pd.DataFrame(
-            threat_data
-        )
-
-        fig = px.bar(
-            threat_df,
-            x="Threat",
-            y="Average Score",
-            text="Average Score",
-            title="Average Threat Scores"
-        )
-
-        fig.update_traces(
-            texttemplate="%{text:.1f}",
-            textposition="outside"
-        )
-
-        fig.update_yaxes(
-            range=[0, 100]
-        )
-
-        style_plot(fig)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-
-    # --------------------------------------------------------
-    # TOP THREATS
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<div class="section-title">'
-        '🚨 Highest Risk Accounts'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-
-    if RISK:
-
-        top = (
-            scores
-            .sort_values(
-                RISK,
+            table = scores.sort_values(
+                risk_score_col,
                 ascending=False
             )
-            .head(10)
-        )
 
-        columns = [
-            c for c in [
-                USER,
-                BOT,
-                SPAM,
-                DUPLICATE,
-                COORDINATION,
-                RATING_ATTACK,
-                CAMPAIGN,
-                RISK,
-                RISK_LEVEL
-            ]
-            if c
-        ]
-
-        st.dataframe(
-            top[columns],
-            use_container_width=True,
-            hide_index=True
-        )
+            display_dataframe(
+                table[display_cols].head(50),
+                550
+            )
 
 
 # ============================================================
-# PAGE 2 — ACCOUNT INTELLIGENCE
+# ACCOUNT DETECTION
 # ============================================================
 
-elif page == "◉ Account Intelligence":
+elif page == "Account Detection":
 
-    st.markdown(
-        '<div class="section-title">'
-        '👤 Account Intelligence'
-        '</div>',
-        unsafe_allow_html=True
+    section_header(
+        "Account Detection",
+        "Behavioral indicators used to identify suspicious and potentially automated accounts."
     )
 
-    st.markdown(
-        "Investigate individual accounts and understand "
-        "why TrustLens considers them suspicious."
-    )
+    df = scores if scores is not None else users_scored
 
+    if df is None:
 
-    # --------------------------------------------------------
-    # USER SEARCH
-    # --------------------------------------------------------
-
-    if USER:
-
-        user_list = (
-            scores[USER]
-            .astype(str)
-            .tolist()
-        )
-
-        selected_user = st.selectbox(
-            "Select account",
-            user_list
-        )
-
-        user_row = scores[
-            scores[USER]
-            .astype(str)
-            == selected_user
-        ].iloc[0]
-
-
-        # ----------------------------------------------------
-        # USER RISK
-        # ----------------------------------------------------
-
-        if RISK:
-
-            risk_value = float(
-                user_row[RISK]
-            )
-
-        else:
-
-            risk_value = 0
-
-
-        col1, col2 = st.columns(
-            [1, 2]
-        )
-
-
-        with col1:
-
-            fig = go.Figure(
-                go.Indicator(
-                    mode="gauge+number",
-                    value=risk_value,
-                    title={
-                        "text": "Overall Risk"
-                    },
-                    gauge={
-                        "axis": {
-                            "range": [0, 100]
-                        },
-                        "bar": {
-                            "color": "#ff4b4b"
-                        },
-                        "steps": [
-                            {
-                                "range": [0, 35],
-                                "color": "#10261e"
-                            },
-                            {
-                                "range": [35, 65],
-                                "color": "#332613"
-                            },
-                            {
-                                "range": [65, 100],
-                                "color": "#351616"
-                            }
-                        ]
-                    }
-                )
-            )
-
-            style_plot(fig)
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-
-        with col2:
-
-            st.subheader(
-                f"Threat Profile — {selected_user}"
-            )
-
-            radar_names = []
-
-            radar_values = []
-
-
-            for col, name in [
-                (BOT, "Bot"),
-                (SPAM, "Spam"),
-                (DUPLICATE, "Duplicate"),
-                (COORDINATION, "Coordination"),
-                (RATING_ATTACK, "Rating Attack")
-            ]:
-
-                if col:
-
-                    radar_names.append(name)
-
-                    radar_values.append(
-                        float(
-                            user_row[col]
-                        )
-                    )
-
-
-            if radar_values:
-
-                radar_names.append(
-                    radar_names[0]
-                )
-
-                radar_values.append(
-                    radar_values[0]
-                )
-
-                fig = go.Figure()
-
-                fig.add_trace(
-                    go.Scatterpolar(
-                        r=radar_values,
-                        theta=radar_names,
-                        fill="toself",
-                        name="Threat Profile"
-                    )
-                )
-
-                fig.update_layout(
-                    polar=dict(
-                        radialaxis=dict(
-                            visible=True,
-                            range=[0, 100]
-                        )
-                    ),
-                    title="Behavioral Threat Fingerprint"
-                )
-
-                style_plot(fig)
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
-
-        # ----------------------------------------------------
-        # WHY SUSPICIOUS?
-        # ----------------------------------------------------
-
-        st.subheader(
-            "🔍 Why is this account suspicious?"
-        )
-
-        explanations = []
-
-
-        if BOT and user_row[BOT] >= 60:
-
-            explanations.append(
-                "🤖 Strong bot-like behavioral signals"
-            )
-
-
-        if SPAM and user_row[SPAM] >= 50:
-
-            explanations.append(
-                "📨 High spam activity detected"
-            )
-
-
-        if DUPLICATE and user_row[DUPLICATE] >= 50:
-
-            explanations.append(
-                "♻️ Repeated/duplicate content detected"
-            )
-
-
-        if COORDINATION and user_row[COORDINATION] >= 50:
-
-            explanations.append(
-                "🕸️ Coordinated engagement pattern detected"
-            )
-
-
-        if RATING_ATTACK and user_row[RATING_ATTACK] >= 50:
-
-            explanations.append(
-                "⭐ Suspicious rating behavior detected"
-            )
-
-
-        if not explanations:
-
-            explanations.append(
-                "🟢 No individual signal crossed "
-                "the strong-warning threshold."
-            )
-
-
-        for explanation in explanations:
-
-            st.info(explanation)
-
-
-# ============================================================
-# PAGE 3 — THREAT DETECTION
-# ============================================================
-
-elif page == "◉ Threat Detection":
-
-    st.markdown(
-        '<div class="section-title">'
-        '🤖 Threat Detection Laboratory'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write(
-        "Explore the individual detection signals used "
-        "by the TrustLens scoring engine."
-    )
-
-
-    detection_columns = [
-        (BOT, "Bot Detection"),
-        (SPAM, "Spam Detection"),
-        (DUPLICATE, "Duplicate Detection"),
-        (COORDINATION, "Coordination Detection"),
-        (RATING_ATTACK, "Rating Attack Detection")
-    ]
-
-
-    for col, name in detection_columns:
-
-        if not col:
-            continue
-
-        st.markdown(
-            f"### {name}"
-        )
-
-
-        avg = scores[col].mean()
-
-        maximum = scores[col].max()
-
-        suspicious_count = (
-            scores[col] >= 50
-        ).sum()
-
-
-        c1, c2, c3 = st.columns(3)
-
-
-        c1.metric(
-            "Average",
-            f"{avg:.2f}"
-        )
-
-        c2.metric(
-            "Maximum",
-            f"{maximum:.2f}"
-        )
-
-        c3.metric(
-            "Above 50",
-            f"{suspicious_count:,}"
-        )
-
-
-        fig = px.histogram(
-            scores,
-            x=col,
-            nbins=20,
-            title=f"{name} Distribution"
-        )
-
-        fig.add_vline(
-            x=50,
-            line_dash="dash",
-            annotation_text="Alert Threshold"
-        )
-
-        style_plot(fig)
-
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
-
-
-# ============================================================
-# PAGE 4 — COORDINATION NETWORK
-# ============================================================
-
-elif page == "◉ Coordination Network":
-
-    st.markdown(
-        '<div class="section-title">'
-        '🕸️ Coordinated Activity Network'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.markdown(
-        "This view exposes groups of accounts that appear "
-        "to interact or behave together."
-    )
-
-
-    if coordination.empty:
-
-        st.warning(
-            "coordination_events.csv was not found "
-            "or contains no data."
-        )
-
-        if not graph_features.empty:
-
-            st.info(
-                "Graph feature data is available, "
-                "but no event-level network was found."
-            )
-
-            st.dataframe(
-                graph_features.head(100),
-                use_container_width=True
-            )
+        st.error("Account scoring data is unavailable.")
 
     else:
 
-        st.success(
-            f"{len(coordination):,} coordination events loaded."
-        )
-
-
-        # ----------------------------------------------------
-        # Automatically identify source / target
-        # ----------------------------------------------------
-
-        source_col = find_column(
-            coordination,
+        bot_col = first_existing_column(
+            df,
             [
-                "source",
-                "source_user",
-                "user_id",
-                "user1",
-                "from_user"
+                "bot_score",
+                "bot_probability",
+                "bot_risk"
             ]
         )
 
-        target_col = find_column(
-            coordination,
-            [
-                "target",
-                "target_user",
-                "user2",
-                "to_user"
-            ]
-        )
+        if bot_col:
 
+            bot_values = safe_numeric(df, bot_col)
 
-        if source_col and target_col:
+            c1, c2, c3 = st.columns(3)
 
-            edges = coordination[
-                [source_col, target_col]
-            ].dropna()
-
-
-            G = nx.Graph()
-
-
-            for _, row in edges.iterrows():
-
-                source = str(
-                    row[source_col]
+            with c1:
+                metric_card(
+                    "AVG BOT SCORE",
+                    f"{bot_values.mean():.2f}",
+                    "Average automation signal"
                 )
 
-                target = str(
-                    row[target_col]
+            with c2:
+                metric_card(
+                    "HIGH BOT SIGNAL",
+                    f"{(bot_values >= 70).sum():,}",
+                    "Score ≥ 70"
                 )
 
-                if source != target:
-
-                    G.add_edge(
-                        source,
-                        target
-                    )
-
-
-            # ------------------------------------------------
-            # Limit to largest connected component
-            # ------------------------------------------------
-
-            if len(G.nodes) > 0:
-
-                components = list(
-                    nx.connected_components(G)
-                )
-
-                largest = max(
-                    components,
-                    key=len
-                )
-
-                G = G.subgraph(
-                    largest
-                ).copy()
-
-
-                # Limit for visualization
-                if len(G.nodes) > 80:
-
-                    important_nodes = sorted(
-                        G.degree,
-                        key=lambda x: x[1],
-                        reverse=True
-                    )[:80]
-
-                    important_nodes = [
-                        n for n, d
-                        in important_nodes
-                    ]
-
-                    G = G.subgraph(
-                        important_nodes
-                    ).copy()
-
-
-                pos = nx.spring_layout(
-                    G,
-                    seed=42,
-                    k=0.7
+            with c3:
+                metric_card(
+                    "LOW BOT SIGNAL",
+                    f"{(bot_values < 30).sum():,}",
+                    "Score < 30"
                 )
 
 
-                # --------------------------------------------
-                # Edges
-                # --------------------------------------------
-
-                edge_x = []
-                edge_y = []
-
-
-                for edge in G.edges():
-
-                    x0, y0 = pos[
-                        edge[0]
-                    ]
-
-                    x1, y1 = pos[
-                        edge[1]
-                    ]
-
-
-                    edge_x.extend(
-                        [x0, x1, None]
-                    )
-
-                    edge_y.extend(
-                        [y0, y1, None]
-                    )
-
-
-                edge_trace = go.Scatter(
-                    x=edge_x,
-                    y=edge_y,
-                    mode="lines",
-                    line=dict(
-                        width=1,
-                        color="rgba(120,140,170,0.35)"
-                    ),
-                    hoverinfo="none"
-                )
-
-
-                # --------------------------------------------
-                # Nodes
-                # --------------------------------------------
-
-                node_x = []
-                node_y = []
-                node_text = []
-                node_size = []
-
-
-                for node in G.nodes():
-
-                    x, y = pos[node]
-
-                    node_x.append(x)
-
-                    node_y.append(y)
-
-                    degree = G.degree(node)
-
-                    node_size.append(
-                        8 + degree * 3
-                    )
-
-                    node_text.append(
-                        f"{node}<br>"
-                        f"Connections: {degree}"
-                    )
-
-
-                node_trace = go.Scatter(
-                    x=node_x,
-                    y=node_y,
-                    mode="markers",
-                    hoverinfo="text",
-                    text=node_text,
-                    marker=dict(
-                        size=node_size,
-                        color=node_size,
-                        colorscale="Turbo",
-                        showscale=True,
-                        colorbar=dict(
-                            title="Connections"
-                        ),
-                        line=dict(
-                            width=1,
-                            color="white"
-                        )
-                    )
-                )
-
-
-                fig = go.Figure(
-                    data=[
-                        edge_trace,
-                        node_trace
-                    ]
-                )
-
-
-                fig.update_layout(
-                    title=(
-                        "Coordinated Account Network"
-                    ),
-                    showlegend=False,
-                    hovermode="closest",
-                    height=650,
-                    xaxis=dict(
-                        showgrid=False,
-                        zeroline=False,
-                        showticklabels=False
-                    ),
-                    yaxis=dict(
-                        showgrid=False,
-                        zeroline=False,
-                        showticklabels=False
-                    )
-                )
-
-
-                style_plot(fig)
-
-
-                st.plotly_chart(
-                    fig,
-                    use_container_width=True
-                )
-
-
-                st.info(
-                    "Larger nodes represent accounts with "
-                    "more connections inside the detected "
-                    "coordination cluster."
-                )
-
-
-        else:
-
-            st.warning(
-                "Could not automatically identify source "
-                "and target user columns."
-            )
-
-            st.write(
-                "Available columns:"
-            )
-
-            st.code(
-                ", ".join(
-                    coordination.columns
-                )
-            )
-
-
-# ============================================================
-# PAGE 5 — RATING ATTACK LAB
-# ============================================================
-
-elif page == "◉ Rating Attack Lab":
-
-    st.markdown(
-        '<div class="section-title">'
-        '⭐ Rating Attack Laboratory'
-        '</div>',
-        unsafe_allow_html=True
-    )
-
-    st.write(
-        "Identify accounts whose rating behavior "
-        "may artificially influence item reputation."
-    )
-
-
-    if RATING_ATTACK:
-
-        threshold = st.slider(
-            "Detection threshold",
-            0,
-            100,
-            50
-        )
-
-
-        attacks = scores[
-            scores[RATING_ATTACK]
-            >= threshold
-        ].copy()
-
-
-        c1, c2, c3 = st.columns(3)
-
-
-        c1.metric(
-            "Suspicious Accounts",
-            f"{len(attacks):,}"
-        )
-
-
-        c2.metric(
-            "Platform Percentage",
-            f"{len(attacks) / len(scores) * 100:.2f}%"
-        )
-
-
-        c3.metric(
-            "Threshold",
-            threshold
-        )
-
-
-        st.markdown("---")
-
-
-        if len(attacks) > 0:
-
-            if RISK:
-
-                attacks = attacks.sort_values(
-                    RISK,
-                    ascending=False
-                )
-
-
-            columns = [
-                c for c in [
-                    USER,
-                    RATING_ATTACK,
-                    BOT,
-                    SPAM,
-                    DUPLICATE,
-                    COORDINATION,
-                    RISK,
-                    RISK_LEVEL
-                ]
-                if c
-            ]
-
-
-            st.dataframe(
-                attacks[columns],
-                use_container_width=True,
-                hide_index=True
-            )
-
-
-            # ----------------------------------------------
-            # Attack severity distribution
-            # ----------------------------------------------
+            chart = pd.DataFrame({
+                "Bot Score": bot_values
+            })
 
             fig = px.histogram(
-                attacks,
-                x=RATING_ATTACK,
-                nbins=15,
-                title="Rating Attack Severity"
+                chart,
+                x="Bot Score",
+                nbins=20,
+                template="plotly_dark",
+                title="Bot Score Distribution"
             )
 
-            style_plot(fig)
+            fig.update_layout(
+                height=400,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
 
             st.plotly_chart(
                 fig,
@@ -1655,394 +923,637 @@ elif page == "◉ Rating Attack Lab":
             )
 
 
-        else:
-
-            st.success(
-                "No accounts crossed the selected threshold."
-            )
-
-
-    else:
-
-        st.warning(
-            "Rating attack scores are unavailable."
+        display_dataframe(
+            df.sort_values(
+                bot_col,
+                ascending=False
+            ).head(50)
+            if bot_col else df.head(50),
+            550
         )
 
 
 # ============================================================
-# PAGE 6 — RECOMMENDATION SECURITY
+# COMMENT ANALYSIS
 # ============================================================
 
-elif page == "◉ Recommendation Security":
+elif page == "Comment Analysis":
 
-    st.markdown(
-        '<div class="section-title">'
-        '🎯 Recommendation Security'
-        '</div>',
-        unsafe_allow_html=True
+    section_header(
+        "Comment Authenticity",
+        "Detection of spam, duplicates and suspicious commenting behavior."
     )
 
-    st.write(
-        "Measure how suspicious activity changes the "
-        "recommendation system."
+    df = comments_scored if comments_scored is not None else comments
+
+    if df is None:
+
+        st.error("Comment data is unavailable.")
+
+    else:
+
+        spam_col = first_existing_column(
+            df,
+            [
+                "spam_score",
+                "spam_risk"
+            ]
+        )
+
+        duplicate_col = first_existing_column(
+            df,
+            [
+                "duplicate_score",
+                "dup_score"
+            ]
+        )
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            metric_card(
+                "COMMENTS",
+                f"{len(df):,}",
+                "Comments analyzed"
+            )
+
+        with c2:
+            metric_card(
+                "SPAM SIGNAL",
+                f"{safe_numeric(df, spam_col).mean():.2f}"
+                if spam_col else "N/A",
+                "Average spam score"
+            )
+
+        with c3:
+            metric_card(
+                "DUPLICATE SIGNAL",
+                f"{safe_numeric(df, duplicate_col).mean():.2f}"
+                if duplicate_col else "N/A",
+                "Average duplicate score"
+            )
+
+
+        if spam_col and duplicate_col:
+
+            plot_df = pd.DataFrame({
+                "Spam Score": safe_numeric(df, spam_col),
+                "Duplicate Score": safe_numeric(df, duplicate_col)
+            })
+
+            fig = px.scatter(
+                plot_df,
+                x="Spam Score",
+                y="Duplicate Score",
+                template="plotly_dark",
+                title="Spam vs Duplicate Behavior"
+            )
+
+            fig.update_layout(
+                height=450,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+
+        display_dataframe(
+            df.head(100),
+            550
+        )
+
+
+# ============================================================
+# RATING ATTACKS
+# ============================================================
+
+elif page == "Rating Attacks":
+
+    section_header(
+        "Rating Manipulation",
+        "Detection of suspicious rating behavior and potential review manipulation."
     )
 
+    if rating_analysis is None:
 
-    if impact.empty:
+        st.error("rating_analysis.csv could not be found.")
+
+    else:
+
+        df = rating_analysis
+
+        attack_col = first_existing_column(
+            df,
+            [
+                "rating_attack_score",
+                "attack_score",
+                "rating_score"
+            ]
+        )
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+            metric_card(
+                "RATINGS ANALYZED",
+                f"{len(df):,}",
+                "Rating events"
+            )
+
+        with c2:
+            metric_card(
+                "AVG ATTACK SCORE",
+                f"{safe_numeric(df, attack_col).mean():.2f}"
+                if attack_col else "N/A",
+                "Average manipulation signal"
+            )
+
+        with c3:
+            metric_card(
+                "HIGH ATTACK SIGNAL",
+                f"{(safe_numeric(df, attack_col) >= 70).sum():,}"
+                if attack_col else "N/A",
+                "Score ≥ 70"
+            )
+
+
+        if attack_col:
+
+            plot_df = df.copy()
+
+            plot_df[attack_col] = pd.to_numeric(
+                plot_df[attack_col],
+                errors="coerce"
+            ).fillna(0)
+
+            fig = px.histogram(
+                plot_df,
+                x=attack_col,
+                nbins=20,
+                template="plotly_dark",
+                title="Rating Attack Score Distribution"
+            )
+
+            fig.update_layout(
+                height=400,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+
+        display_dataframe(
+            df.sort_values(
+                attack_col,
+                ascending=False
+            ).head(100)
+            if attack_col else df.head(100),
+            550
+        )
+
+
+# ============================================================
+# COORDINATION
+# ============================================================
+
+elif page == "Coordination":
+
+    section_header(
+        "Coordinated Activity",
+        "Detection of groups of accounts behaving similarly or engaging in synchronized activity."
+    )
+
+    df = coordination
+
+    if df is None:
 
         st.warning(
-            "recommendation_impact.csv is empty."
+            "coordination_events.csv was not found."
+        )
+
+        if scores is not None and "coordination_score" in scores.columns:
+
+            st.info(
+                "Showing coordination scores from the TrustLens scoring dataset."
+            )
+
+            coord_df = scores[
+                [
+                    c for c in [
+                        "user_id",
+                        "coordination_score",
+                        "risk_score",
+                        "risk_level"
+                    ]
+                    if c in scores.columns
+                ]
+            ].sort_values(
+                "coordination_score",
+                ascending=False
+            )
+
+            display_dataframe(
+                coord_df.head(100),
+                550
+            )
+
+    else:
+
+        metric_card(
+            "COORDINATION EVENTS",
+            f"{len(df):,}",
+            "Detected synchronized events"
+        )
+
+        display_dataframe(
+            df.head(150),
+            600
+        )
+
+
+# ============================================================
+# RECOMMENDATION IMPACT
+# ============================================================
+
+elif page == "Recommendation Impact":
+
+    section_header(
+        "Recommendation Security",
+        "Measures how suspicious activity changes recommendation rankings."
+    )
+
+    if recommendation_impact is None:
+
+        st.error(
+            "recommendation_impact.csv could not be found."
         )
 
     else:
 
-        item_col = find_column(
-            impact,
+        df = recommendation_impact.copy()
+
+        rank_change_col = first_existing_column(
+            df,
             [
-                "item_id",
-                "item"
+                "rank_change",
+                "change_in_rank"
             ]
         )
 
-        original_rank = find_column(
-            impact,
+        score_change_col = first_existing_column(
+            df,
             [
-                "original_rank"
+                "score_change",
+                "change_in_score"
             ]
         )
 
-        clean_rank = find_column(
-            impact,
-            [
-                "clean_rank"
-            ]
-        )
+        c1, c2, c3 = st.columns(3)
 
-        rank_change = find_column(
-            impact,
-            [
-                "rank_change"
-            ]
-        )
+        with c1:
 
-        original_score = find_column(
-            impact,
-            [
-                "original_score"
-            ]
-        )
-
-        clean_score = find_column(
-            impact,
-            [
-                "clean_score"
-            ]
-        )
-
-        score_change = find_column(
-            impact,
-            [
-                "score_change"
-            ]
-        )
-
-
-        # ----------------------------------------------------
-        # Metrics
-        # ----------------------------------------------------
-
-        c1, c2, c3, c4 = st.columns(4)
-
-
-        c1.metric(
-            "Items Analyzed",
-            f"{len(impact):,}"
-        )
-
-
-        if rank_change:
-
-            largest_rank_change = (
-                impact[rank_change]
-                .abs()
-                .max()
+            metric_card(
+                "ITEMS ANALYZED",
+                f"{len(df):,}",
+                "Recommendation candidates"
             )
 
-        else:
+        with c2:
 
-            largest_rank_change = 0
+            if rank_change_col:
+
+                rank_values = safe_numeric(
+                    df,
+                    rank_change_col
+                )
+
+                metric_card(
+                    "LARGEST RANK SHIFT",
+                    f"{rank_values.abs().max():.0f}",
+                    "Absolute rank change"
+                )
+
+            else:
+
+                metric_card(
+                    "RANK SHIFT",
+                    "N/A",
+                    "Not available"
+                )
+
+        with c3:
+
+            if score_change_col:
+
+                score_values = safe_numeric(
+                    df,
+                    score_change_col
+                )
+
+                metric_card(
+                    "MAX SCORE CHANGE",
+                    f"{score_values.abs().max():.3f}",
+                    "Recommendation score"
+                )
+
+            else:
+
+                metric_card(
+                    "SCORE CHANGE",
+                    "N/A",
+                    "Not available"
+                )
 
 
-        c2.metric(
-            "Largest Rank Shift",
-            f"{largest_rank_change:.0f}"
-        )
+        if rank_change_col:
 
+            plot_df = df.copy()
 
-        if score_change:
+            plot_df[rank_change_col] = pd.to_numeric(
+                plot_df[rank_change_col],
+                errors="coerce"
+            ).fillna(0)
 
-            largest_score_change = (
-                impact[score_change]
-                .abs()
-                .max()
+            plot_df["Direction"] = np.where(
+                plot_df[rank_change_col] > 0,
+                "Moved Down",
+                np.where(
+                    plot_df[rank_change_col] < 0,
+                    "Moved Up",
+                    "No Change"
+                )
             )
 
-        else:
+            fig = px.scatter(
+                plot_df,
+                x=rank_change_col,
+                y=score_change_col
+                if score_change_col
+                else rank_change_col,
+                hover_name="item_id"
+                if "item_id" in plot_df.columns
+                else None,
+                color="Direction",
+                template="plotly_dark",
+                title="Recommendation Ranking Impact"
+            )
 
-            largest_score_change = 0
+            fig.update_layout(
+                height=450,
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="rgba(0,0,0,0)"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
 
 
-        c3.metric(
-            "Largest Score Shift",
-            f"{largest_score_change:.3f}"
-        )
+        if rank_change_col:
 
+            largest = df.copy()
 
-        if rank_change:
-
-            affected = (
-                impact[rank_change]
+            largest["_abs_change"] = (
+                pd.to_numeric(
+                    largest[rank_change_col],
+                    errors="coerce"
+                )
                 .abs()
-                >= 20
-            ).sum()
-
-        else:
-
-            affected = 0
-
-
-        c4.metric(
-            "Majorly Affected",
-            f"{affected:,}"
-        )
-
-
-        st.markdown("---")
-
-
-        # ----------------------------------------------------
-        # BIGGEST MANIPULATIONS
-        # ----------------------------------------------------
-
-        st.subheader(
-            "🚨 Largest Recommendation Manipulations"
-        )
-
-
-        if rank_change:
+            )
 
             largest = (
-                impact
+                largest
                 .sort_values(
-                    rank_change,
-                    key=lambda x: x.abs(),
+                    "_abs_change",
                     ascending=False
                 )
-                .head(20)
+                .drop(columns=["_abs_change"])
+                .head(30)
             )
 
+            st.markdown("### Largest Recommendation Changes")
 
-            st.dataframe(
+            display_dataframe(
                 largest,
-                use_container_width=True,
-                hide_index=True
-            )
-
-
-        # ----------------------------------------------------
-        # RANK SHIFT GRAPH
-        # ----------------------------------------------------
-
-        if (
-            item_col
-            and rank_change
-        ):
-
-            chart = (
-                impact
-                .sort_values(
-                    rank_change,
-                    key=lambda x: x.abs(),
-                    ascending=False
-                )
-                .head(20)
-            )
-
-
-            fig = px.bar(
-                chart,
-                x=item_col,
-                y=rank_change,
-                title="Recommendation Rank Displacement"
-            )
-
-
-            fig.add_hline(
-                y=0,
-                line_dash="dash"
-            )
-
-
-            style_plot(fig)
-
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-
-        # ----------------------------------------------------
-        # SCORE CHANGE
-        # ----------------------------------------------------
-
-        if (
-            item_col
-            and score_change
-        ):
-
-            st.subheader(
-                "Recommendation Score Distortion"
-            )
-
-
-            chart = (
-                impact
-                .sort_values(
-                    score_change,
-                    key=lambda x: x.abs(),
-                    ascending=False
-                )
-                .head(20)
-            )
-
-
-            fig = px.bar(
-                chart,
-                x=item_col,
-                y=score_change,
-                title="Recommendation Score Changes"
-            )
-
-
-            fig.add_hline(
-                y=0,
-                line_dash="dash"
-            )
-
-
-            style_plot(fig)
-
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
+                550
             )
 
 
 # ============================================================
-# PAGE 7 — DATA EXPLORER
+# NETWORK INTELLIGENCE
 # ============================================================
 
-elif page == "◉ Data Explorer":
+elif page == "Network Intelligence":
 
-    st.markdown(
-        '<div class="section-title">'
-        '📁 Data Explorer'
-        '</div>',
-        unsafe_allow_html=True
+    section_header(
+        "Network Intelligence",
+        "Graph-based view of suspicious user relationships and behavioral structure."
     )
 
-
-    datasets = {
-
-        "Risk Scores":
-            scores,
-
-        "Recommendation Impact":
-            impact,
-
-        "Ratings":
-            ratings,
-
-        "Users":
-            users,
-
-        "Users Scored":
-            users_scored,
-
-        "Comments":
-            comments,
-
-        "Comments Scored":
-            comments_scored,
-
-        "Coordination Events":
-            coordination,
-
-        "Graph Features":
-            graph_features,
-
-        "Rating Analysis":
-            rating_analysis,
-
-        "Recommendation Ranking":
-            recommendation_ranking
-    }
-
-
-    selected = st.selectbox(
-        "Select dataset",
-        list(datasets.keys())
-    )
-
-
-    df = datasets[selected]
-
-
-    if df.empty:
+    if graph_features is None:
 
         st.warning(
-            "This dataset is unavailable or empty."
+            "graph_features.csv could not be found."
         )
 
     else:
 
-        c1, c2 = st.columns(2)
+        df = graph_features.copy()
 
-        c1.metric(
-            "Rows",
-            f"{len(df):,}"
+        st.markdown(
+            """
+            <div class="info-card">
+
+                <div class="info-title">
+                    🕸️ Behavioral Network Analysis
+                </div>
+
+                <div class="info-text">
+                    TrustLens analyzes relationships between users,
+                    interactions and suspicious behavioral patterns.
+                    High-connectivity or structurally unusual accounts
+                    can indicate coordinated activity.
+                </div>
+
+            </div>
+            """,
+            unsafe_allow_html=True
         )
 
-        c2.metric(
-            "Columns",
-            f"{len(df.columns):,}"
-        )
 
-
-        st.dataframe(
+        degree_col = first_existing_column(
             df,
-            use_container_width=True,
-            hide_index=True
+            [
+                "degree",
+                "degree_centrality",
+                "connections"
+            ]
+        )
+
+        if degree_col:
+
+            numeric_degree = safe_numeric(
+                df,
+                degree_col
+            )
+
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+
+                metric_card(
+                    "NODES",
+                    f"{len(df):,}",
+                    "Accounts represented"
+                )
+
+            with c2:
+
+                metric_card(
+                    "AVG CONNECTIVITY",
+                    f"{numeric_degree.mean():.2f}",
+                    "Mean connections"
+                )
+
+            with c3:
+
+                metric_card(
+                    "MAX CONNECTIVITY",
+                    f"{numeric_degree.max():.0f}",
+                    "Highest connectivity"
+                )
+
+
+            plot_df = df.copy()
+
+            plot_df[degree_col] = pd.to_numeric(
+                plot_df[degree_col],
+                errors="coerce"
+            ).fillna(0)
+
+            user_col = get_user_column(plot_df)
+
+            if user_col:
+
+                top = plot_df.nlargest(
+                    25,
+                    degree_col
+                )
+
+                fig = px.bar(
+                    top,
+                    x=degree_col,
+                    y=user_col,
+                    orientation="h",
+                    template="plotly_dark",
+                    title="Most Connected Accounts"
+                )
+
+                fig.update_layout(
+                    height=600,
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)"
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+
+        display_dataframe(
+            df.head(100),
+            550
         )
 
 
-        csv = df.to_csv(
-            index=False
-        ).encode("utf-8")
+# ============================================================
+# DATA EXPLORER
+# ============================================================
+
+elif page == "Data Explorer":
+
+    section_header(
+        "Data Explorer",
+        "Inspect the underlying TrustLens datasets."
+    )
+
+    datasets = {
+        "TrustLens Scores": scores,
+        "Users": users,
+        "Users Scored": users_scored,
+        "Comments": comments,
+        "Comments Scored": comments_scored,
+        "Ratings": ratings,
+        "Rating Analysis": rating_analysis,
+        "Items": items,
+        "Interactions": interactions,
+        "Coordination Events": coordination,
+        "Graph Features": graph_features,
+        "Recommendation Impact": recommendation_impact,
+        "Recommendation Ranking": recommendation_ranking
+    }
+
+    available = [
+        name
+        for name, dataframe in datasets.items()
+        if dataframe is not None
+    ]
+
+    if not available:
+
+        st.error("No TrustLens datasets were found.")
+
+    else:
+
+        selected_dataset = st.selectbox(
+            "Select dataset",
+            available
+        )
+
+        selected_df = datasets[selected_dataset]
+
+        c1, c2, c3 = st.columns(3)
+
+        with c1:
+
+            metric_card(
+                "ROWS",
+                f"{len(selected_df):,}",
+                "Dataset records"
+            )
+
+        with c2:
+
+            metric_card(
+                "COLUMNS",
+                f"{len(selected_df.columns):,}",
+                "Dataset fields"
+            )
+
+        with c3:
+
+            metric_card(
+                "MEMORY",
+                f"{selected_df.memory_usage(deep=True).sum() / 1024:.1f} KB",
+                "Approximate size"
+            )
 
 
-        st.download_button(
-            "⬇️ Download Dataset",
-            csv,
-            file_name=(
-                selected
-                .lower()
-                .replace(" ", "_")
-                + ".csv"
-            ),
-            mime="text/csv"
+        st.markdown("### Dataset Preview")
+
+        display_dataframe(
+            selected_df.head(200),
+            650
         )
 
 
@@ -2050,26 +1561,14 @@ elif page == "◉ Data Explorer":
 # FOOTER
 # ============================================================
 
-st.markdown("---")
-
 st.markdown(
     """
-    <div style="
-        text-align:center;
-        color:#68758a;
-        padding:20px;
-    ">
-
-        <b>TRUSTLENS</b><br>
-
-        Social Media Integrity &
-        Recommendation Security Platform
-
-        <br><br>
-
-        Detection → Scoring → Attack Analysis →
-        Network Intelligence → Recommendation Impact
-
+    <div class="footer">
+        🛡️ TRUSTLENS &nbsp;•&nbsp;
+        AI-Powered Social Media Authenticity & Security Analysis
+        <br>
+        Behavioral Detection • Coordination Analysis •
+        Rating Security • Recommendation Integrity
     </div>
     """,
     unsafe_allow_html=True
