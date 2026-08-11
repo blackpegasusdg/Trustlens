@@ -1,5 +1,10 @@
 streamlit
 pandas
 numpy
-plotly
 scikit-learn
+networkx
+matplotlib
+seaborn
+fastapi
+uvicorn
+plotly
