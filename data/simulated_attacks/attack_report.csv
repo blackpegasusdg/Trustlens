@@ -1,0 +1,5 @@
+attack_parameter,value
+number_of_bots,20
+comments_per_bot,5
+fake_comments,0
+fake_ratings,0

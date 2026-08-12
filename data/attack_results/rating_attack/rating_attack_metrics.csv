@@ -1,0 +1,15 @@
+metric,value
+total_ratings,5068.0
+known_fake_ratings,60.0
+detected_suspicious,33.0
+true_positives,0.0
+false_positives,33.0
+false_negatives,60.0
+true_negatives,4975.0
+precision,0.0
+recall,0.0
+f1_score,0.0
+accuracy,0.98165
+false_positive_rate,0.006589
+attack_detection_rate,0.0
+detection_threshold,30.0

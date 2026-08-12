@@ -1,0 +1,101 @@
+user_id,item_id,text,is_fake_attack,attack_type
+CBOT_001,I236,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_002,I242,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_003,I292,Amazing product! Highly recommended!,True,SPAM
+CBOT_004,I139,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_005,I173,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_006,I2,Absolutely amazing! Must buy!,True,SPAM
+CBOT_007,I453,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_008,I416,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_009,I428,Excellent! Five stars!,True,SPAM
+CBOT_010,I472,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_011,I236,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_012,I242,Excellent service! Five stars!,True,SPAM
+CBOT_013,I292,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_014,I139,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_015,I173,Amazing quality! Buy this now!,True,SPAM
+CBOT_016,I2,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_017,I453,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_018,I416,Amazing product! Highly recommended!,True,SPAM
+CBOT_019,I428,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_020,I472,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_001,I236,Best product ever! Buy now!,True,SPAM
+CBOT_002,I242,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_003,I292,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_004,I139,Absolutely amazing! Must buy!,True,SPAM
+CBOT_005,I173,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_006,I2,Amazing product. Highly recommended.,True,NEAR_DUPLICATE
+CBOT_007,I453,Amazing quality! Buy this now!,True,SPAM
+CBOT_008,I416,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_009,I428,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_010,I472,Excellent service! Five stars!,True,SPAM
+CBOT_011,I236,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_012,I242,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_013,I292,Excellent service! Five stars!,True,SPAM
+CBOT_014,I139,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_015,I173,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_016,I2,Absolutely amazing! Must buy!,True,SPAM
+CBOT_017,I453,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_018,I416,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_019,I428,Amazing quality! Buy this now!,True,SPAM
+CBOT_020,I472,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_001,I236,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_002,I242,Amazing product! Highly recommended!,True,SPAM
+CBOT_003,I292,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_004,I139,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_005,I173,Best experience ever!,True,SPAM
+CBOT_006,I2,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_007,I453,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_008,I416,Great product! Highly recommend!,True,SPAM
+CBOT_009,I428,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_010,I472,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_011,I236,Absolutely amazing! Must buy!,True,SPAM
+CBOT_012,I242,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_013,I292,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_014,I139,Best product ever! Buy now!,True,SPAM
+CBOT_015,I173,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_016,I2,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_017,I453,Best experience ever!,True,SPAM
+CBOT_018,I416,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_019,I428,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_020,I472,Fantastic product! Loved it!,True,SPAM
+CBOT_001,I236,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_002,I242,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_003,I292,Amazing quality! Buy this now!,True,SPAM
+CBOT_004,I139,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_005,I173,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_006,I2,Amazing product! Highly recommended!,True,SPAM
+CBOT_007,I453,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_008,I416,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_009,I428,Excellent service! Five stars!,True,SPAM
+CBOT_010,I472,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_011,I236,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_012,I242,Best experience ever!,True,SPAM
+CBOT_013,I292,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_014,I139,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_015,I173,Excellent service! Five stars!,True,SPAM
+CBOT_016,I2,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_017,I453,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_018,I416,Amazing quality! Buy this now!,True,SPAM
+CBOT_019,I428,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_020,I472,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_001,I236,Amazing quality! Buy this now!,True,SPAM
+CBOT_002,I242,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_003,I292,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_004,I139,Best product ever! Buy now!,True,SPAM
+CBOT_005,I173,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_006,I2,Amazing product highly recommended!,True,NEAR_DUPLICATE
+CBOT_007,I453,Absolutely amazing! Must buy!,True,SPAM
+CBOT_008,I416,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_009,I428,"Amazing product, highly recommended!",True,NEAR_DUPLICATE
+CBOT_010,I472,Best product ever! Buy now!,True,SPAM
+CBOT_011,I236,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_012,I242,Amazing product! Highly recommended!!,True,NEAR_DUPLICATE
+CBOT_013,I292,Best product ever! Buy now!,True,SPAM
+CBOT_014,I139,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_015,I173,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_016,I2,Great product! Highly recommend!,True,SPAM
+CBOT_017,I453,Amazing product! Highly recommended!,True,EXACT_DUPLICATE
+CBOT_018,I416,Amazing product - highly recommended!,True,NEAR_DUPLICATE
+CBOT_019,I428,Fantastic product! Loved it!,True,SPAM
+CBOT_020,I472,Amazing product! Highly recommended!,True,EXACT_DUPLICATE

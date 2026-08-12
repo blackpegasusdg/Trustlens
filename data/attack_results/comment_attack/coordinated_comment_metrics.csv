@@ -1,0 +1,10 @@
+metric,value
+True Positives,41.0
+False Positives,12.0
+False Negatives,59.0
+True Negatives,4996.0
+Precision,0.7735849056603774
+Recall,0.41
+F1 Score,0.5359477124183006
+Accuracy,0.9861002349256069
+False Positive Rate,0.0023961661341853034
