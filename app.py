@@ -9,12 +9,11 @@ from textwrap import dedent
 from datetime import datetime
 import random
 import re
-import subprocess
-import sys
+import time
 
 
 # ============================================================
-# CONFIGURATION
+# TRUSTLENS CONFIGURATION
 # ============================================================
 
 RENDER_API = "https://trustlens-9idp.onrender.com"
@@ -22,11 +21,8 @@ RENDER_API = "https://trustlens-9idp.onrender.com"
 BASE_DIR = Path(__file__).resolve().parent
 
 DATA_DIR = BASE_DIR / "data"
-
 LIVE_DATA_DIR = DATA_DIR / "live"
-
 ATTACK_DATA_DIR = DATA_DIR / "attacks"
-
 ATTACK_RESULTS_DIR = DATA_DIR / "attack_results"
 
 
@@ -60,67 +56,110 @@ html, body, [class*="css"] {
     background:
         radial-gradient(
             circle at 10% 10%,
-            rgba(30,100,255,0.10),
-            transparent 30%
+            rgba(40, 110, 255, 0.12),
+            transparent 28%
         ),
         radial-gradient(
-            circle at 90% 20%,
-            rgba(120,60,255,0.08),
-            transparent 30%
+            circle at 90% 10%,
+            rgba(130, 70, 255, 0.10),
+            transparent 28%
         ),
-        #080d18;
+        linear-gradient(
+            180deg,
+            #070b14 0%,
+            #0a101d 100%
+        );
 
     color: #f5f7fb;
 }
+
+/* ============================================================
+   SIDEBAR
+   ============================================================ */
 
 section[data-testid="stSidebar"] {
     background:
         linear-gradient(
             180deg,
-            #0c1322 0%,
-            #080d18 100%
+            #0b1220 0%,
+            #080d17 100%
         );
 
     border-right:
-        1px solid rgba(255,255,255,0.08);
+        1px solid rgba(255,255,255,0.07);
 }
 
 section[data-testid="stSidebar"] * {
     color: #dce5f7;
 }
 
+section[data-testid="stSidebar"] .stRadio label {
+    padding: 8px 4px;
+}
+
+/* ============================================================
+   MAIN CONTAINER
+   ============================================================ */
+
 .block-container {
     padding-top: 2rem;
-    padding-bottom: 3rem;
+    padding-bottom: 4rem;
     max-width: 1500px;
 }
 
+/* ============================================================
+   HERO
+   ============================================================ */
+
 .hero {
+    position: relative;
+
     background:
         linear-gradient(
             135deg,
-            rgba(21,35,65,0.95),
-            rgba(11,18,33,0.95)
+            rgba(20, 34, 62, 0.98),
+            rgba(10, 17, 31, 0.98)
         );
 
     border:
-        1px solid rgba(110,160,255,0.18);
+        1px solid rgba(100, 150, 255, 0.20);
 
-    border-radius: 24px;
+    border-radius: 26px;
 
     padding: 42px;
 
-    margin-bottom: 30px;
+    margin-bottom: 28px;
+
+    overflow: hidden;
 
     box-shadow:
-        0 20px 60px rgba(0,0,0,0.30);
+        0 25px 70px rgba(0,0,0,0.35);
+}
+
+.hero:after {
+    content: "";
+
+    position: absolute;
+
+    width: 260px;
+    height: 260px;
+
+    right: -80px;
+    top: -100px;
+
+    background:
+        radial-gradient(
+            circle,
+            rgba(75,130,255,0.20),
+            transparent 70%
+        );
 }
 
 .hero-title {
-    font-size: 44px;
+    font-size: 46px;
     font-weight: 800;
-    letter-spacing: -1px;
-    margin-bottom: 10px;
+    letter-spacing: -1.5px;
+    margin-bottom: 8px;
 }
 
 .hero-title span {
@@ -138,81 +177,308 @@ section[data-testid="stSidebar"] * {
 .hero-subtitle {
     color: #91a4c4;
     font-size: 17px;
-    line-height: 1.6;
-    max-width: 800px;
+    line-height: 1.7;
+    max-width: 850px;
 }
 
 .status {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    margin-top: 24px;
-    padding: 9px 15px;
+
+    margin-top: 22px;
+
+    padding: 9px 16px;
 
     border-radius: 999px;
 
     background:
-        rgba(60,220,150,0.10);
+        rgba(50,220,145,0.09);
 
     border:
-        1px solid rgba(60,220,150,0.25);
+        1px solid rgba(50,220,145,0.25);
 
     color: #74f0b6;
 
-    font-size: 13px;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 800;
+
+    letter-spacing: 0.5px;
 }
+
+/* ============================================================
+   SECTION
+   ============================================================ */
+
+.section-title {
+    font-size: 26px;
+    font-weight: 800;
+
+    margin-top: 32px;
+    margin-bottom: 4px;
+}
+
+.section-subtitle {
+    color: #8294b2;
+
+    margin-bottom: 20px;
+
+    font-size: 14px;
+}
+
+/* ============================================================
+   KPI
+   ============================================================ */
 
 .kpi-card {
     background:
         linear-gradient(
             135deg,
-            rgba(20,32,55,0.95),
-            rgba(12,19,34,0.95)
+            rgba(20,32,55,0.96),
+            rgba(11,18,32,0.96)
         );
 
     border:
-        1px solid rgba(255,255,255,0.08);
+        1px solid rgba(255,255,255,0.075);
 
     border-radius: 18px;
 
+    padding: 22px;
+
+    min-height: 140px;
+
+    box-shadow:
+        0 12px 35px rgba(0,0,0,0.20);
+
+    transition:
+        transform 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+
+    border-color:
+        rgba(100,150,255,0.25);
+}
+
+.kpi-label {
+    color: #8295b4;
+
+    font-size: 11px;
+
+    font-weight: 800;
+
+    letter-spacing: 1.2px;
+}
+
+.kpi-value {
+    font-size: 34px;
+
+    font-weight: 800;
+
+    margin-top: 9px;
+
+    color: #f5f8ff;
+}
+
+.kpi-description {
+    color: #667995;
+
+    font-size: 12px;
+
+    margin-top: 5px;
+}
+
+/* ============================================================
+   LIVE CONNECTION
+   ============================================================ */
+
+.live-connected {
+    padding: 14px 18px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(40,210,130,0.08);
+
+    border:
+        1px solid rgba(40,210,130,0.25);
+
+    color: #76efb7;
+
+    font-weight: 700;
+
+    font-size: 13px;
+}
+
+.live-warning {
+    padding: 14px 18px;
+
+    border-radius: 14px;
+
+    background:
+        rgba(255,180,60,0.08);
+
+    border:
+        1px solid rgba(255,180,60,0.25);
+
+    color: #ffd17b;
+
+    font-weight: 700;
+
+    font-size: 13px;
+}
+
+/* ============================================================
+   ANALYSIS CARD
+   ============================================================ */
+
+.analysis-card {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(17,27,47,0.95),
+            rgba(10,17,30,0.95)
+        );
+
+    border:
+        1px solid rgba(255,255,255,0.07);
+
+    border-radius: 20px;
+
     padding: 24px;
 
-    min-height: 145px;
+    margin-top: 20px;
+
+    box-shadow:
+        0 15px 45px rgba(0,0,0,0.18);
+}
+
+.analysis-card h3 {
+    margin-top: 0;
+}
+
+/* ============================================================
+   POST CARD
+   ============================================================ */
+
+.post-card {
+    background:
+        linear-gradient(
+            135deg,
+            rgba(18,29,49,0.96),
+            rgba(10,17,30,0.96)
+        );
+
+    border:
+        1px solid rgba(255,255,255,0.07);
+
+    border-radius: 20px;
+
+    padding: 22px;
+
+    margin-bottom: 16px;
 
     box-shadow:
         0 12px 35px rgba(0,0,0,0.18);
 }
 
-.kpi-label {
-    color: #8ea0bd;
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-
-.kpi-value {
-    font-size: 36px;
+.post-user {
+    font-size: 15px;
     font-weight: 800;
-    margin-top: 10px;
 }
 
-.kpi-description {
-    color: #7183a2;
+.post-text {
+    color: #d6deec;
+
+    font-size: 15px;
+
+    line-height: 1.7;
+
+    margin-top: 14px;
+}
+
+.post-meta {
+    color: #70819d;
+
     font-size: 12px;
-    margin-top: 6px;
 }
 
-.section-title {
-    font-size: 25px;
+/* ============================================================
+   BADGES
+   ============================================================ */
+
+.badge {
+    display: inline-flex;
+
+    padding: 6px 11px;
+
+    border-radius: 999px;
+
+    font-size: 11px;
+
     font-weight: 800;
-    margin-top: 35px;
 }
 
-.section-subtitle {
+.badge-safe {
+    background:
+        rgba(40,210,130,0.10);
+
+    border:
+        1px solid rgba(40,210,130,0.25);
+
+    color: #70efb2;
+}
+
+.badge-medium {
+    background:
+        rgba(255,185,60,0.10);
+
+    border:
+        1px solid rgba(255,185,60,0.25);
+
+    color: #ffd47d;
+}
+
+.badge-high {
+    background:
+        rgba(255,70,90,0.10);
+
+    border:
+        1px solid rgba(255,70,90,0.25);
+
+    color: #ff8998;
+}
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+
+.empty-state {
+    padding: 50px 30px;
+
+    text-align: center;
+
+    background:
+        rgba(15,24,42,0.85);
+
+    border:
+        1px dashed rgba(255,255,255,0.12);
+
+    border-radius: 20px;
+
     color: #8294b2;
-    margin-bottom: 18px;
 }
+
+.empty-icon {
+    font-size: 42px;
+    margin-bottom: 10px;
+}
+
+/* ============================================================
+   SUCCESS / WARNING
+   ============================================================ */
 
 .success-box {
     padding: 16px 20px;
@@ -220,7 +486,7 @@ section[data-testid="stSidebar"] * {
     border-radius: 14px;
 
     background:
-        rgba(40,210,130,0.10);
+        rgba(40,210,130,0.09);
 
     border:
         1px solid rgba(40,210,130,0.25);
@@ -234,7 +500,7 @@ section[data-testid="stSidebar"] * {
     border-radius: 14px;
 
     background:
-        rgba(255,180,60,0.10);
+        rgba(255,180,60,0.09);
 
     border:
         1px solid rgba(255,180,60,0.25);
@@ -242,8 +508,13 @@ section[data-testid="stSidebar"] * {
     color: #ffd17b;
 }
 
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
 .footer {
     margin-top: 60px;
+
     padding: 30px;
 
     text-align: center;
@@ -252,6 +523,60 @@ section[data-testid="stSidebar"] * {
 
     border-top:
         1px solid rgba(255,255,255,0.06);
+
+    font-size: 12px;
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.stButton > button {
+    border-radius: 10px;
+
+    border:
+        1px solid rgba(255,255,255,0.10);
+
+    background:
+        rgba(30,45,70,0.8);
+
+    color: #eef4ff;
+
+    font-weight: 700;
+}
+
+.stButton > button:hover {
+    border-color:
+        rgba(100,150,255,0.35);
+}
+
+/* ============================================================
+   DATAFRAME
+   ============================================================ */
+
+div[data-testid="stDataFrame"] {
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+    .hero {
+        padding: 28px;
+    }
+
+    .hero-title {
+        font-size: 34px;
+    }
+
+    .hero-subtitle {
+        font-size: 15px;
+    }
+
 }
 
 </style>
@@ -338,23 +663,6 @@ def first_existing_column(df, candidates):
     return None
 
 
-def safe_numeric(df, column):
-
-    if (
-        df is None
-        or column not in df.columns
-    ):
-
-        return pd.Series(
-            dtype=float
-        )
-
-    return pd.to_numeric(
-        df[column],
-        errors="coerce"
-    ).fillna(0)
-
-
 def normalize_text(value):
 
     value = str(value)
@@ -370,19 +678,30 @@ def normalize_text(value):
     return value.strip()
 
 
+def safe_float(value, default=0.0):
+
+    try:
+
+        if value is None:
+            return default
+
+        return float(value)
+
+    except Exception:
+
+        return default
+
+
 # ============================================================
-# DATA DIRECTORIES
+# DIRECTORIES
 # ============================================================
 
-def ensure_live_dir():
+def ensure_directories():
 
     LIVE_DATA_DIR.mkdir(
         parents=True,
         exist_ok=True
     )
-
-
-def ensure_attack_dirs():
 
     ATTACK_DATA_DIR.mkdir(
         parents=True,
@@ -395,8 +714,7 @@ def ensure_attack_dirs():
     )
 
 
-ensure_live_dir()
-ensure_attack_dirs()
+ensure_directories()
 
 
 # ============================================================
@@ -422,13 +740,14 @@ def find_data_file(filename):
     for path in possible_paths:
 
         if path.exists():
+
             return path
 
     return None
 
 
 # ============================================================
-# LOAD STATIC TRUSTLENS CSV
+# STATIC CSV LOADER
 # ============================================================
 
 @st.cache_data
@@ -449,198 +768,148 @@ def load_csv(filename):
 
 
 # ============================================================
-# LOAD LIVE POSTS
+# API REQUEST HELPER
 # ============================================================
 
-@st.cache_data(ttl=5)
-def load_live_posts():
+def api_get(endpoint):
 
     try:
 
         response = requests.get(
-            f"{RENDER_API}/posts",
-            timeout=20
+            f"{RENDER_API}{endpoint}",
+            timeout=30
         )
 
         response.raise_for_status()
 
-        data = response.json()
+        return response.json()
 
-        if isinstance(data, dict):
+    except Exception as error:
 
-            if "posts" in data:
-                data = data["posts"]
+        print(
+            f"TrustLens API GET {endpoint} failed:",
+            error
+        )
 
-            elif "data" in data:
-                data = data["data"]
+        return None
 
-        if not data:
 
-            return pd.DataFrame()
+# ============================================================
+# NORMALIZE API LIST RESPONSE
+# ============================================================
 
-        return pd.DataFrame(data)
+def normalize_api_list(data):
 
-    except Exception:
+    if data is None:
+        return []
 
+    if isinstance(data, list):
+        return data
+
+    if isinstance(data, dict):
+
+        for key in [
+            "posts",
+            "analysis",
+            "results",
+            "users",
+            "data"
+        ]:
+
+            if key in data:
+
+                value = data[key]
+
+                if isinstance(value, list):
+                    return value
+
+                if isinstance(value, dict):
+                    return [value]
+
+        return [data]
+
+    return []
+
+
+# ============================================================
+# LOAD LIVE POSTS
+#
+# IMPORTANT:
+# No Streamlit cache here.
+#
+# This guarantees that the dashboard sees new
+# PostgreSQL records immediately after refresh.
+# ============================================================
+
+def load_live_posts():
+
+    data = api_get("/posts")
+
+    records = normalize_api_list(data)
+
+    if not records:
         return pd.DataFrame()
+
+    return pd.DataFrame(records)
 
 
 # ============================================================
 # LOAD LIVE USERS
 # ============================================================
 
-@st.cache_data(ttl=5)
 def load_live_users():
 
-    try:
+    data = api_get("/users")
 
-        response = requests.get(
-            f"{RENDER_API}/users",
-            timeout=20
-        )
+    records = normalize_api_list(data)
 
-        response.raise_for_status()
-
-        data = response.json()
-
-        if isinstance(data, dict):
-
-            if "users" in data:
-                data = data["users"]
-
-            elif "data" in data:
-                data = data["data"]
-
-        if not data:
-
-            return pd.DataFrame()
-
-        return pd.DataFrame(data)
-
-    except Exception:
-
+    if not records:
         return pd.DataFrame()
 
+    return pd.DataFrame(records)
+
 
 # ============================================================
-# LOAD LIVE TRUSTLENS ANALYSIS
+# LOAD LIVE ANALYSIS
 # ============================================================
 
-@st.cache_data(ttl=3)
 def load_live_analysis():
 
-    try:
+    data = api_get("/analysis")
 
-        response = requests.get(
-            f"{RENDER_API}/analysis",
-            timeout=20
-        )
+    records = normalize_api_list(data)
 
-        response.raise_for_status()
-
-        data = response.json()
-
-        # ----------------------------------------------------
-        # HANDLE DIFFERENT API RESPONSE FORMATS
-        # ----------------------------------------------------
-
-        if isinstance(data, dict):
-
-            if "analysis" in data:
-                data = data["analysis"]
-
-            elif "data" in data:
-                data = data["data"]
-
-            elif "results" in data:
-                data = data["results"]
-
-            else:
-
-                # If the API returned one record
-                # rather than a list.
-                data = [data]
-
-        if not data:
-
-            return pd.DataFrame()
-
-        df = pd.DataFrame(data)
-
-        return df
-
-    except requests.exceptions.RequestException as e:
-
-        st.error(
-            f"""
-            Unable to connect to TrustLens Live API.
-
-            Render API:
-            {RENDER_API}
-
-            Error:
-            {e}
-            """
-        )
-
+    if not records:
         return pd.DataFrame()
 
-    except Exception as e:
-
-        st.error(
-            f"Unable to process TrustLens analysis data: {e}"
-        )
-
-        return pd.DataFrame()
+    return pd.DataFrame(records)
 
 
 # ============================================================
 # LOAD STATIC TRUSTLENS DATASETS
 # ============================================================
 
-scores = load_csv(
-    "trustlens_scores.csv"
-)
+scores = load_csv("trustlens_scores.csv")
 
-users = load_csv(
-    "users.csv"
-)
+users = load_csv("users.csv")
 
-users_scored = load_csv(
-    "users_scored.csv"
-)
+users_scored = load_csv("users_scored.csv")
 
-comments = load_csv(
-    "comments.csv"
-)
+comments = load_csv("comments.csv")
 
-comments_scored = load_csv(
-    "comments_scored.csv"
-)
+comments_scored = load_csv("comments_scored.csv")
 
-ratings = load_csv(
-    "ratings.csv"
-)
+ratings = load_csv("ratings.csv")
 
-rating_analysis = load_csv(
-    "rating_analysis.csv"
-)
+rating_analysis = load_csv("rating_analysis.csv")
 
-items = load_csv(
-    "items.csv"
-)
+items = load_csv("items.csv")
 
-interactions = load_csv(
-    "interactions.csv"
-)
+interactions = load_csv("interactions.csv")
 
-coordination = load_csv(
-    "coordination_events.csv"
-)
+coordination = load_csv("coordination_events.csv")
 
-graph_features = load_csv(
-    "graph_features.csv"
-)
+graph_features = load_csv("graph_features.csv")
 
 recommendation_impact = load_csv(
     "recommendation_impact.csv"
@@ -653,10 +922,6 @@ recommendation_ranking = load_csv(
 
 # ============================================================
 # LIVE DATA
-#
-# IMPORTANT:
-# These are now loaded from Render API.
-# They are NOT loaded from local CSV files.
 # ============================================================
 
 live_posts = load_live_posts()
@@ -664,28 +929,6 @@ live_posts = load_live_posts()
 live_analysis = load_live_analysis()
 
 live_users = load_live_users()
-
-
-# ============================================================
-# NORMALIZE LIVE DATAFRAME
-# ============================================================
-
-def normalize_live_dataframe(df):
-
-    if df is None:
-        return None
-
-    if df.empty:
-        return df
-
-    result = df.copy()
-
-    result.columns = [
-        str(column).strip()
-        for column in result.columns
-    ]
-
-    return result
 
 
 # ============================================================
@@ -712,7 +955,7 @@ def get_live_risk_level_column(df):
         [
             "risk_level",
             "risk_category",
-            "risk"
+            "level"
         ]
     )
 
@@ -734,7 +977,8 @@ def get_live_duplicate_column(df):
         df,
         [
             "duplicate_score",
-            "dup_score"
+            "dup_score",
+            "duplicate_risk"
         ]
     )
 
@@ -797,7 +1041,8 @@ def get_live_suspicious_mask(df):
     if df is None or df.empty:
 
         return pd.Series(
-            dtype=bool
+            False,
+            index=df.index if df is not None else []
         )
 
     suspicious_col = (
@@ -806,22 +1051,21 @@ def get_live_suspicious_mask(df):
 
     if suspicious_col:
 
-        values = df[
-            suspicious_col
-        ]
-
-        return (
-            values
+        values = (
+            df[suspicious_col]
             .astype(str)
             .str.lower()
-            .isin(
-                [
-                    "true",
-                    "1",
-                    "yes",
-                    "suspicious"
-                ]
-            )
+            .str.strip()
+        )
+
+        return values.isin(
+            [
+                "true",
+                "1",
+                "yes",
+                "suspicious",
+                "high"
+            ]
         )
 
     risk_col = (
@@ -884,6 +1128,54 @@ def get_user_column(df):
 
 
 # ============================================================
+# RISK BADGE
+# ============================================================
+
+def render_risk_badge(
+    risk_level=None,
+    suspicious=False,
+    risk_score=0
+):
+
+    level = str(
+        risk_level or ""
+    ).upper()
+
+    score = safe_float(
+        risk_score
+    )
+
+    if (
+        suspicious
+        or level == "HIGH"
+        or score >= 70
+    ):
+
+        return (
+            '<span class="badge badge-high">'
+            '⚠️ HIGH RISK'
+            '</span>'
+        )
+
+    if (
+        level == "MEDIUM"
+        or score >= 40
+    ):
+
+        return (
+            '<span class="badge badge-medium">'
+            '⚠️ MEDIUM RISK'
+            '</span>'
+        )
+
+    return (
+        '<span class="badge badge-safe">'
+        '✓ SAFE'
+        '</span>'
+    )
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
 
@@ -893,6 +1185,8 @@ st.sidebar.markdown(
 
     **AI-Powered Social Media
     Authenticity & Security**
+
+    ---
     """
 )
 
@@ -904,6 +1198,20 @@ page = st.sidebar.radio(
         "Attack Simulation",
         "Data Explorer"
     ]
+)
+
+st.sidebar.markdown("---")
+
+st.sidebar.markdown(
+    """
+    **System**
+
+    🟢 API Connected
+
+    PostgreSQL-backed live analysis
+
+    `trustlens-9idp.onrender.com`
+    """
 )
 
 
@@ -926,6 +1234,9 @@ if page == "Dashboard":
                 AI-powered social media authenticity,
                 bias and recommendation security analyzer.
 
+                Detect suspicious content, coordinated behavior,
+                manipulation and abnormal engagement patterns.
+
             </div>
 
             <div class="status">
@@ -947,9 +1258,7 @@ if page == "Dashboard":
 
     if scores is not None:
 
-        risk_col = get_risk_column(
-            scores
-        )
+        risk_col = get_risk_column(scores)
 
         if risk_col:
 
@@ -967,21 +1276,17 @@ if page == "Dashboard":
                 risk_values.eq("MEDIUM").sum()
             )
 
-    rating_attacks = 0
+    rating_attacks = (
+        len(rating_analysis)
+        if rating_analysis is not None
+        else 0
+    )
 
-    if rating_analysis is not None:
-
-        rating_attacks = len(
-            rating_analysis
-        )
-
-    recommendation_changes = 0
-
-    if recommendation_impact is not None:
-
-        recommendation_changes = len(
-            recommendation_impact
-        )
+    recommendation_changes = (
+        len(recommendation_impact)
+        if recommendation_impact is not None
+        else 0
+    )
 
     c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -1025,11 +1330,6 @@ if page == "Dashboard":
             "Ranking changes analyzed"
         )
 
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
-
     section_header(
         "Risk Distribution",
         "Distribution of accounts across TrustLens risk categories."
@@ -1037,9 +1337,7 @@ if page == "Dashboard":
 
     if scores is not None:
 
-        risk_col = get_risk_column(
-            scores
-        )
+        risk_col = get_risk_column(scores)
 
         if risk_col:
 
@@ -1115,37 +1413,56 @@ elif page == "Live Social Analysis":
 
     section_header(
         "Live Social Analysis",
-        "Real-time TrustLens analysis of posts submitted through the social platform."
+        "Real-time analysis of posts submitted through your social-media platform."
     )
 
-    col_refresh, col_status = st.columns(
-        [1, 4]
+    # --------------------------------------------------------
+    # CONTROLS
+    # --------------------------------------------------------
+
+    col_refresh, col_auto, col_status = st.columns(
+        [1.4, 1.4, 4]
     )
 
     with col_refresh:
 
-        if st.button(
-            "🔄 Refresh Analysis",
+        refresh_clicked = st.button(
+            "🔄 Refresh Now",
             use_container_width=True
-        ):
+        )
 
-            load_live_analysis.clear()
-            load_live_posts.clear()
-            load_live_users.clear()
+    with col_auto:
 
-            st.rerun()
+        auto_refresh = st.checkbox(
+            "Auto Refresh",
+            value=False
+        )
+
+    if refresh_clicked:
+
+        st.rerun()
+
+    if auto_refresh:
+
+        time.sleep(2)
+        st.rerun()
+
+    # --------------------------------------------------------
+    # API STATUS
+    # --------------------------------------------------------
 
     with col_status:
 
-        if (
-            live_analysis is not None
-            and not live_analysis.empty
-        ):
+        test_data = api_get("/analysis")
+
+        if test_data is not None:
 
             render_html(
                 """
-                <div class="success-box">
-                    🟢 LIVE TRUSTLENS ANALYSIS CONNECTED
+                <div class="live-connected">
+                    🟢 LIVE TRUSTLENS API CONNECTED
+                    &nbsp; • &nbsp;
+                    PostgreSQL data available
                 </div>
                 """
             )
@@ -1154,57 +1471,66 @@ elif page == "Live Social Analysis":
 
             render_html(
                 """
-                <div class="warning-box">
-                    🟡 WAITING FOR LIVE ANALYSIS DATA
+                <div class="live-warning">
+                    🟡 TrustLens API is currently unavailable.
                 </div>
                 """
             )
 
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
+    # --------------------------------------------------------
+    # RELOAD LIVE DATA
+    # --------------------------------------------------------
 
+    live_posts = load_live_posts()
 
-    # ========================================================
+    live_analysis = load_live_analysis()
+
+    live_users = load_live_users()
+
+    # --------------------------------------------------------
     # NO DATA
-    # ========================================================
+    # --------------------------------------------------------
 
-    if (
-        live_analysis is None
-        or live_analysis.empty
-    ):
+    if live_analysis.empty:
 
-        st.info(
-            "No live TrustLens analysis records were found."
-        )
-
-        st.markdown(
+        render_html(
             """
-            ### Waiting for social platform data
+            <div class="empty-state">
 
-            Create a post from your React social-media website.
+                <div class="empty-icon">
+                    🛡️
+                </div>
 
-            The live flow is:
+                <h2>
+                    Waiting for TrustLens analysis
+                </h2>
 
-            **React → Render FastAPI → PostgreSQL → TrustLens Dashboard**
+                <p>
+                    Create a post on your React social-media
+                    application and refresh this dashboard.
+                </p>
 
-            The dashboard reads persistent analysis through:
+                <p>
+                    React → Render FastAPI → PostgreSQL
+                    → TrustLens Dashboard
+                </p>
 
-            **GET /analysis**
+            </div>
             """
         )
 
     else:
 
-        df = normalize_live_dataframe(
-            live_analysis
-        )
+        df = live_analysis.copy()
 
+        df.columns = [
+            str(column).strip()
+            for column in df.columns
+        ]
 
-        # ====================================================
-        # IDENTIFY COLUMNS
-        # ====================================================
+        # ----------------------------------------------------
+        # COLUMN DETECTION
+        # ----------------------------------------------------
 
         risk_score_col = (
             get_live_risk_score_column(df)
@@ -1238,10 +1564,9 @@ elif page == "Live Social Analysis":
             get_live_post_id_column(df)
         )
 
-
-        # ====================================================
-        # SUSPICIOUS POSTS
-        # ====================================================
+        # ----------------------------------------------------
+        # SUSPICIOUS
+        # ----------------------------------------------------
 
         suspicious_mask = (
             get_live_suspicious_mask(df)
@@ -1258,10 +1583,9 @@ elif page == "Live Social Analysis":
             - suspicious_posts
         )
 
-
-        # ====================================================
-        # RISK VALUES
-        # ====================================================
+        # ----------------------------------------------------
+        # RISK
+        # ----------------------------------------------------
 
         if risk_score_col:
 
@@ -1284,10 +1608,9 @@ elif page == "Live Social Analysis":
 
             maximum_risk = 0
 
-
-        # ====================================================
-        # KPI CARDS
-        # ====================================================
+        # ----------------------------------------------------
+        # KPI
+        # ----------------------------------------------------
 
         c1, c2, c3, c4, c5 = st.columns(5)
 
@@ -1304,7 +1627,7 @@ elif page == "Live Social Analysis":
             metric_card(
                 "SUSPICIOUS",
                 f"{suspicious_posts:,}",
-                "Posts requiring attention"
+                "Requires attention"
             )
 
         with c3:
@@ -1331,14 +1654,13 @@ elif page == "Live Social Analysis":
                 "Highest detected risk"
             )
 
-
-        # ====================================================
-        # RISK DISTRIBUTION
-        # ====================================================
+        # ----------------------------------------------------
+        # RISK LEVEL
+        # ----------------------------------------------------
 
         section_header(
             "Live Risk Distribution",
-            "Current risk levels across posts received from the social platform."
+            "Current risk levels across posts."
         )
 
         if risk_level_col:
@@ -1362,7 +1684,7 @@ elif page == "Live Social Analysis":
                 y="Posts",
                 text="Posts",
                 template="plotly_dark",
-                title="Live Post Risk Levels"
+                title="Post Risk Levels"
             )
 
             fig.update_traces(
@@ -1380,23 +1702,20 @@ elif page == "Live Social Analysis":
                 use_container_width=True
             )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # RISK SCORE DISTRIBUTION
-        # ====================================================
+        # ----------------------------------------------------
 
         if risk_score_col:
 
             section_header(
                 "Risk Score Distribution",
-                "Distribution of TrustLens risk scores across live posts."
+                "Distribution of TrustLens risk scores."
             )
 
             chart_df = df.copy()
 
-            chart_df[
-                risk_score_col
-            ] = pd.to_numeric(
+            chart_df[risk_score_col] = pd.to_numeric(
                 chart_df[risk_score_col],
                 errors="coerce"
             ).fillna(0)
@@ -1406,7 +1725,7 @@ elif page == "Live Social Analysis":
                 x=risk_score_col,
                 nbins=20,
                 template="plotly_dark",
-                title="Live Risk Score Distribution"
+                title="Live Risk Scores"
             )
 
             fig.update_layout(
@@ -1420,10 +1739,9 @@ elif page == "Live Social Analysis":
                 use_container_width=True
             )
 
-
-        # ====================================================
-        # SPAM / DUPLICATE ANALYSIS
-        # ====================================================
+        # ----------------------------------------------------
+        # DETECTION SIGNALS
+        # ----------------------------------------------------
 
         if spam_col or duplicate_col:
 
@@ -1436,25 +1754,22 @@ elif page == "Live Social Analysis":
 
             if spam_col:
 
-                signal_data[
-                    "Spam Score"
-                ] = pd.to_numeric(
+                signal_data["Spam Score"] = pd.to_numeric(
                     df[spam_col],
                     errors="coerce"
                 ).fillna(0)
 
             if duplicate_col:
 
-                signal_data[
-                    "Duplicate Score"
-                ] = pd.to_numeric(
+                signal_data["Duplicate Score"] = pd.to_numeric(
                     df[duplicate_col],
                     errors="coerce"
                 ).fillna(0)
 
             if (
                 "Spam Score" in signal_data
-                and "Duplicate Score" in signal_data
+                and
+                "Duplicate Score" in signal_data
             ):
 
                 signal_df = pd.DataFrame(
@@ -1480,14 +1795,13 @@ elif page == "Live Social Analysis":
                     use_container_width=True
                 )
 
-
-        # ====================================================
-        # RECENT RESULTS
-        # ====================================================
+        # ----------------------------------------------------
+        # RECENT RESULTS TABLE
+        # ----------------------------------------------------
 
         section_header(
             "Recent TrustLens Results",
-            "Latest posts analyzed by the TrustLens detection engine."
+            "Latest posts received from the PostgreSQL-backed API."
         )
 
         display_columns = []
@@ -1519,6 +1833,7 @@ elif page == "Live Social Analysis":
                 display_columns
             ].copy()
 
+            # Newest first.
             recent = recent.iloc[::-1]
 
             display_dataframe(
@@ -1533,10 +1848,9 @@ elif page == "Live Social Analysis":
                 600
             )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # SUSPICIOUS POSTS
-        # ====================================================
+        # ----------------------------------------------------
 
         if suspicious_posts > 0:
 
@@ -1569,14 +1883,13 @@ elif page == "Live Social Analysis":
                 """
             )
 
-
-        # ====================================================
+        # ----------------------------------------------------
         # POST LEVEL ANALYSIS
-        # ====================================================
+        # ----------------------------------------------------
 
         section_header(
             "Post-Level TrustLens Analysis",
-            "Detailed analysis of individual posts."
+            "Detailed analysis of individual social-media posts."
         )
 
         recent_rows = (
@@ -1630,57 +1943,90 @@ elif page == "Live Social Analysis":
                 else False
             )
 
-            with st.container():
+            # -----------------------------------------------
+            # POST CARD
+            # -----------------------------------------------
 
-                st.markdown(
-                    "---"
+            badge = render_risk_badge(
+                level_value,
+                row_suspicious,
+                risk_value
+            )
+
+            render_html(
+                f"""
+                <div class="post-card">
+
+                    <div style="
+                        display:flex;
+                        justify-content:space-between;
+                        align-items:center;
+                        gap:20px;
+                    ">
+
+                        <div>
+
+                            <div class="post-user">
+                                👤 {user_value}
+                            </div>
+
+                            <div class="post-meta">
+                                TrustLens monitored post
+                            </div>
+
+                        </div>
+
+                        <div>
+                            {badge}
+                        </div>
+
+                    </div>
+
+                    <div class="post-text">
+                        {text_value}
+                    </div>
+
+                </div>
+                """
+            )
+
+            # -----------------------------------------------
+            # METRICS
+            # -----------------------------------------------
+
+            c1, c2, c3, c4 = st.columns(4)
+
+            with c1:
+
+                metric_card(
+                    "SPAM",
+                    f"{safe_float(spam_value):.2f}",
+                    "Spam signal"
                 )
 
-                st.markdown(
-                    f"### 👤 {user_value}"
+            with c2:
+
+                metric_card(
+                    "DUPLICATE",
+                    f"{safe_float(duplicate_value):.2f}",
+                    "Similarity signal"
                 )
 
-                st.write(
-                    text_value
+            with c3:
+
+                metric_card(
+                    "RISK",
+                    f"{safe_float(risk_value):.2f}",
+                    "Overall risk"
                 )
 
-                c1, c2, c3, c4 = st.columns(4)
+            with c4:
 
-                with c1:
-
-                    metric_card(
-                        "SPAM",
-                        f"{float(spam_value):.2f}",
-                        "Spam score"
-                    )
-
-                with c2:
-
-                    metric_card(
-                        "DUPLICATE",
-                        f"{float(duplicate_value):.2f}",
-                        "Duplicate score"
-                    )
-
-                with c3:
-
-                    metric_card(
-                        "RISK",
-                        f"{float(risk_value):.2f}",
-                        "Overall risk"
-                    )
-
-                with c4:
-
-                    metric_card(
-                        "STATUS",
-                        (
-                            "⚠️ SUSPICIOUS"
-                            if row_suspicious
-                            else "✅ SAFE"
-                        ),
-                        str(level_value)
-                    )
+                metric_card(
+                    "LEVEL",
+                    str(level_value).upper(),
+                    "TrustLens classification"
+                )
 
 
 # ============================================================
@@ -1756,6 +2102,11 @@ elif page == "Data Explorer":
         "Inspect the underlying TrustLens datasets."
     )
 
+    # Refresh live API data whenever this page opens.
+    live_posts = load_live_posts()
+    live_analysis = load_live_analysis()
+    live_users = load_live_users()
+
     datasets = {
 
         "TrustLens Scores":
@@ -1805,18 +2156,13 @@ elif page == "Data Explorer":
 
         "Live Users":
             live_users
-
     }
 
     available = [
-
         name
-
         for name, dataframe
         in datasets.items()
-
         if dataframe is not None
-
     ]
 
     if not available:
@@ -1836,40 +2182,55 @@ elif page == "Data Explorer":
             selected_dataset
         ]
 
-        c1, c2, c3 = st.columns(3)
+        if selected_df is None:
 
-        with c1:
-
-            metric_card(
-                "ROWS",
-                f"{len(selected_df):,}",
-                "Dataset records"
+            st.warning(
+                "No data available."
             )
 
-        with c2:
+        else:
 
-            metric_card(
-                "COLUMNS",
-                f"{len(selected_df.columns):,}",
-                "Dataset fields"
+            c1, c2, c3 = st.columns(3)
+
+            with c1:
+
+                metric_card(
+                    "ROWS",
+                    f"{len(selected_df):,}",
+                    "Dataset records"
+                )
+
+            with c2:
+
+                metric_card(
+                    "COLUMNS",
+                    f"{len(selected_df.columns):,}",
+                    "Dataset fields"
+                )
+
+            with c3:
+
+                memory = (
+                    selected_df
+                    .memory_usage(deep=True)
+                    .sum()
+                    / 1024
+                )
+
+                metric_card(
+                    "MEMORY",
+                    f"{memory:.1f} KB",
+                    "Approximate size"
+                )
+
+            st.markdown(
+                "### Dataset Preview"
             )
 
-        with c3:
-
-            metric_card(
-                "MEMORY",
-                f"{selected_df.memory_usage(deep=True).sum() / 1024:.1f} KB",
-                "Approximate size"
+            display_dataframe(
+                selected_df.head(200),
+                650
             )
-
-        st.markdown(
-            "### Dataset Preview"
-        )
-
-        display_dataframe(
-            selected_df.head(200),
-            650
-        )
 
 
 # ============================================================
@@ -1883,12 +2244,18 @@ render_html(
         🛡️ TRUSTLENS &nbsp;•&nbsp;
         AI-Powered Social Media Authenticity & Security Analysis
 
-        <br>
+        <br><br>
 
         Behavioral Detection •
         Coordination Analysis •
         Rating Security •
         Recommendation Integrity
+
+        <br><br>
+
+        <span style="opacity:0.6;">
+            Live data powered by Render + PostgreSQL
+        </span>
 
     </div>
     """
