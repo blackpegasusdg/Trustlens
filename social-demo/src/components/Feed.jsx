@@ -2,6 +2,12 @@ import { useState } from "react";
 import CreatePost from "./CreatePost";
 import TrustLensDashboard from "./TrustLensDashboard";
 
+// ============================================================
+// TRUSTLENS BACKEND
+// ============================================================
+
+const API_URL = "https://trustlens-9idp.onrender.com";
+
 function Feed({ user, onLogout }) {
 
   const [posts, setPosts] = useState([
@@ -29,65 +35,129 @@ function Feed({ user, onLogout }) {
 
   const addPost = async (text) => {
 
-    const response = await fetch(
-      "http://127.0.0.1:8001/posts",
-      {
-        method: "POST",
+    try {
 
-        headers: {
-          "Content-Type": "application/json"
-        },
+      console.log("Sending post to TrustLens...");
+      console.log("Backend:", API_URL);
+      console.log("User:", user);
+      console.log("Text:", text);
 
-        body: JSON.stringify({
-          user: user,
-          text: text
-        })
-      }
-    );
+      const response = await fetch(
+        `${API_URL}/posts`,
+        {
+          method: "POST",
 
-    if (!response.ok) {
-      throw new Error(
-        `TrustLens server returned ${response.status}`
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            user: user,
+            text: text
+          })
+        }
       );
+
+      // ========================================================
+      // CHECK SERVER RESPONSE
+      // ========================================================
+
+      if (!response.ok) {
+
+        throw new Error(
+          `TrustLens server returned ${response.status}`
+        );
+
+      }
+
+      const result = await response.json();
+
+      console.log(
+        "TrustLens received post:",
+        result
+      );
+
+      console.log(
+        "TrustLens analysis:",
+        result.analysis
+      );
+
+
+      // ========================================================
+      // CHECK BACKEND SUCCESS
+      // ========================================================
+
+      if (!result.success) {
+
+        throw new Error(
+          result.message || "TrustLens rejected the post"
+        );
+
+      }
+
+
+      // ========================================================
+      // CREATE SOCIAL FEED POST
+      // ========================================================
+
+      const newPost = {
+
+        id:
+          result.post?.post_id ||
+          result.post_id ||
+          `POST_${Date.now()}`,
+
+        user:
+          result.post?.user_id ||
+          user,
+
+        text:
+          result.post?.text ||
+          text,
+
+        likes: 0,
+
+        comments: 0,
+
+        analysis:
+          result.analysis || null
+
+      };
+
+
+      // ========================================================
+      // ADD TO FEED
+      // ========================================================
+
+      setPosts((previousPosts) => [
+        newPost,
+        ...previousPosts
+      ]);
+
+
+      // ========================================================
+      // RETURN RESULT TO CREATEPOST
+      // ========================================================
+
+      return result;
+
     }
 
-    const result = await response.json();
+    catch (error) {
 
-    console.log(
-      "TrustLens received post:",
-      result
-    );
+      console.error(
+        "TrustLens post error:",
+        error
+      );
 
-    console.log(
-      "TrustLens analysis:",
-      result.analysis
-    );
+      alert(
+        `Could not post to TrustLens.\n\n${error.message}`
+      );
 
-    // ============================================================
-    // ADD POST TO SOCIAL FEED
-    // ============================================================
+      throw error;
 
-    const newPost = {
-      id: result.post_id || `POST_${Date.now()}`,
+    }
 
-      user: user,
-
-      text: text,
-
-      likes: 0,
-
-      comments: 0,
-
-      analysis: result.analysis
-    };
-
-    setPosts((previousPosts) => [
-      newPost,
-      ...previousPosts
-    ]);
-
-    // Send result back to CreatePost
-    return result;
   };
 
 
@@ -96,8 +166,11 @@ function Feed({ user, onLogout }) {
   // ============================================================
 
   const handleLogout = () => {
+
     setPosts([]);
+
     onLogout();
+
   };
 
 
@@ -106,7 +179,9 @@ function Feed({ user, onLogout }) {
   // ============================================================
 
   return (
+
     <div className="social-app">
+
 
       {/* ======================================================
           NAVBAR
@@ -118,20 +193,25 @@ function Feed({ user, onLogout }) {
           🔍 TrustLens
         </div>
 
+
         <div className="nav-user">
 
           <span>
             @{user}
           </span>
 
+
           <button
             className="dashboard-btn"
             onClick={() =>
-              setShowDashboard((previous) => !previous)
+              setShowDashboard(
+                (previous) => !previous
+              )
             }
           >
             TrustLens Analysis
           </button>
+
 
           <button
             className="logout-btn"
@@ -151,18 +231,23 @@ function Feed({ user, onLogout }) {
 
       <main className="feed-container">
 
+
         {!showDashboard ? (
 
           <>
 
-            {/* CREATE POST */}
+            {/* ==================================================
+                CREATE POST
+            ================================================== */}
 
             <CreatePost
               onPost={addPost}
             />
 
 
-            {/* FEED TITLE */}
+            {/* ==================================================
+                FEED TITLE
+            ================================================== */}
 
             <h2 className="feed-title">
               Social Feed
@@ -180,7 +265,10 @@ function Feed({ user, onLogout }) {
                 key={post.id}
               >
 
-                {/* USER */}
+
+                {/* ==================================================
+                    USER
+                ================================================== */}
 
                 <div className="post-header">
 
@@ -191,6 +279,7 @@ function Feed({ user, onLogout }) {
                       : "U"}
 
                   </div>
+
 
                   <div>
 
@@ -207,7 +296,9 @@ function Feed({ user, onLogout }) {
                 </div>
 
 
-                {/* POST TEXT */}
+                {/* ==================================================
+                    POST TEXT
+                ================================================== */}
 
                 <p className="post-text">
                   {post.text}
@@ -226,31 +317,38 @@ function Feed({ user, onLogout }) {
                       🛡️ TrustLens Analysis
                     </strong>
 
+
                     <div>
                       Spam Score:{" "}
                       {post.analysis.spam_score}
                     </div>
+
 
                     <div>
                       Duplicate Score:{" "}
                       {post.analysis.duplicate_score}
                     </div>
 
+
                     <div>
                       Risk Score:{" "}
                       {post.analysis.risk_score}
                     </div>
+
 
                     <div>
                       Risk Level:{" "}
                       {post.analysis.risk_level}
                     </div>
 
+
                     <div>
                       Status:{" "}
+
                       {post.analysis.suspicious
                         ? "⚠️ SUSPICIOUS"
                         : "✅ SAFE"}
+
                     </div>
 
                   </div>
@@ -268,9 +366,11 @@ function Feed({ user, onLogout }) {
                     ❤️ {post.likes}
                   </span>
 
+
                   <span>
                     💬 {post.comments}
                   </span>
+
 
                   <span>
                     ↗ Share
@@ -295,7 +395,9 @@ function Feed({ user, onLogout }) {
       </main>
 
     </div>
+
   );
+
 }
 
 export default Feed;
