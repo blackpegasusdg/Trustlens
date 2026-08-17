@@ -2,12 +2,6 @@ import { useState } from "react";
 import CreatePost from "./CreatePost";
 import TrustLensDashboard from "./TrustLensDashboard";
 
-// ============================================================
-// TRUSTLENS BACKEND
-// ============================================================
-
-const API_URL = "https://trustlens-9idp.onrender.com";
-
 function Feed({ user, onLogout }) {
 
   const [posts, setPosts] = useState([
@@ -37,13 +31,8 @@ function Feed({ user, onLogout }) {
 
     try {
 
-      console.log("Sending post to TrustLens...");
-      console.log("Backend:", API_URL);
-      console.log("User:", user);
-      console.log("Text:", text);
-
       const response = await fetch(
-        `${API_URL}/posts`,
+        "https://trustlens-9idp.onrender.com/posts",
         {
           method: "POST",
 
@@ -58,16 +47,10 @@ function Feed({ user, onLogout }) {
         }
       );
 
-      // ========================================================
-      // CHECK SERVER RESPONSE
-      // ========================================================
-
       if (!response.ok) {
-
         throw new Error(
           `TrustLens server returned ${response.status}`
         );
-
       }
 
       const result = await response.json();
@@ -83,22 +66,9 @@ function Feed({ user, onLogout }) {
       );
 
 
-      // ========================================================
-      // CHECK BACKEND SUCCESS
-      // ========================================================
-
-      if (!result.success) {
-
-        throw new Error(
-          result.message || "TrustLens rejected the post"
-        );
-
-      }
-
-
-      // ========================================================
-      // CREATE SOCIAL FEED POST
-      // ========================================================
+      // ============================================================
+      // ADD POST TO SOCIAL FEED
+      // ============================================================
 
       const newPost = {
 
@@ -121,13 +91,8 @@ function Feed({ user, onLogout }) {
 
         analysis:
           result.analysis || null
-
       };
 
-
-      // ========================================================
-      // ADD TO FEED
-      // ========================================================
 
       setPosts((previousPosts) => [
         newPost,
@@ -135,29 +100,17 @@ function Feed({ user, onLogout }) {
       ]);
 
 
-      // ========================================================
-      // RETURN RESULT TO CREATEPOST
-      // ========================================================
-
       return result;
 
-    }
-
-    catch (error) {
+    } catch (error) {
 
       console.error(
-        "TrustLens post error:",
+        "Error connecting to TrustLens backend:",
         error
       );
 
-      alert(
-        `Could not post to TrustLens.\n\n${error.message}`
-      );
-
       throw error;
-
     }
-
   };
 
 
@@ -231,23 +184,18 @@ function Feed({ user, onLogout }) {
 
       <main className="feed-container">
 
-
         {!showDashboard ? (
 
           <>
 
-            {/* ==================================================
-                CREATE POST
-            ================================================== */}
+            {/* CREATE POST */}
 
             <CreatePost
               onPost={addPost}
             />
 
 
-            {/* ==================================================
-                FEED TITLE
-            ================================================== */}
+            {/* FEED TITLE */}
 
             <h2 className="feed-title">
               Social Feed
@@ -266,9 +214,7 @@ function Feed({ user, onLogout }) {
               >
 
 
-                {/* ==================================================
-                    USER
-                ================================================== */}
+                {/* USER */}
 
                 <div className="post-header">
 
@@ -296,9 +242,7 @@ function Feed({ user, onLogout }) {
                 </div>
 
 
-                {/* ==================================================
-                    POST TEXT
-                ================================================== */}
+                {/* POST TEXT */}
 
                 <p className="post-text">
                   {post.text}
@@ -344,11 +288,9 @@ function Feed({ user, onLogout }) {
 
                     <div>
                       Status:{" "}
-
                       {post.analysis.suspicious
                         ? "⚠️ SUSPICIOUS"
                         : "✅ SAFE"}
-
                     </div>
 
                   </div>
@@ -366,11 +308,9 @@ function Feed({ user, onLogout }) {
                     ❤️ {post.likes}
                   </span>
 
-
                   <span>
                     💬 {post.comments}
                   </span>
-
 
                   <span>
                     ↗ Share

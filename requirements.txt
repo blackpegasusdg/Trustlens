@@ -8,3 +8,7 @@ seaborn
 fastapi
 uvicorn
 plotly
+fastapi
+uvicorn
+pandas
+pydantic
