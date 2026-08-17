@@ -1,334 +1,21 @@
-import os
-import re
-import uuid
-from datetime import datetime, timezone
-
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-
-from sqlalchemy import (
-    create_engine,
-    Column,
-    String,
-    Text,
-    Float,
-    Boolean,
-    DateTime,
-    ForeignKey,
-    Integer,
-    JSON,
-)
-from sqlalchemy.orm import (
-    declarative_base,
-    sessionmaker,
-    relationship,
-)
+from pydantic import BaseModel
+from datetime import datetime
+import os
+import uuid
+import re
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
 
 # ============================================================
-# CONFIGURATION
-# ============================================================
-
-DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not DATABASE_URL:
-    # Local development fallback.
-    # Render should use PostgreSQL through DATABASE_URL.
-    DATABASE_URL = "sqlite:///./trustlens.db"
-
-
-# Render/Postgres sometimes provides postgres://
-# while SQLAlchemy expects postgresql://
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace(
-        "postgres://",
-        "postgresql://",
-        1
-    )
-
-
-# ============================================================
-# DATABASE
-# ============================================================
-
-connect_args = {}
-
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {
-        "check_same_thread": False
-    }
-
-
-engine = create_engine(
-    DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True
-)
-
-
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
-
-
-Base = declarative_base()
-
-
-# ============================================================
-# DATABASE MODELS
-# ============================================================
-
-class Post(Base):
-
-    __tablename__ = "posts"
-
-    id = Column(
-        String,
-        primary_key=True,
-        index=True
-    )
-
-    text = Column(
-        Text,
-        nullable=False
-    )
-
-    user_id = Column(
-        String,
-        nullable=True,
-        index=True
-    )
-
-    timestamp = Column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
-
-    comments = relationship(
-        "Comment",
-        back_populates="post",
-        cascade="all, delete-orphan"
-    )
-
-    analysis = relationship(
-        "PostAnalysis",
-        back_populates="post",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
-
-class Comment(Base):
-
-    __tablename__ = "comments"
-
-    id = Column(
-        String,
-        primary_key=True,
-        index=True
-    )
-
-    post_id = Column(
-        String,
-        ForeignKey("posts.id"),
-        nullable=False,
-        index=True
-    )
-
-    user_id = Column(
-        String,
-        nullable=True,
-        index=True
-    )
-
-    text = Column(
-        Text,
-        nullable=False
-    )
-
-    timestamp = Column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
-
-    post = relationship(
-        "Post",
-        back_populates="comments"
-    )
-
-    analysis = relationship(
-        "CommentAnalysis",
-        back_populates="comment",
-        uselist=False,
-        cascade="all, delete-orphan"
-    )
-
-
-class PostAnalysis(Base):
-
-    __tablename__ = "post_analysis"
-
-    id = Column(
-        String,
-        primary_key=True,
-        index=True
-    )
-
-    post_id = Column(
-        String,
-        ForeignKey("posts.id"),
-        nullable=False,
-        unique=True,
-        index=True
-    )
-
-    risk_level = Column(
-        String,
-        nullable=False
-    )
-
-    risk_score = Column(
-        Float,
-        nullable=False
-    )
-
-    authenticity_score = Column(
-        Float,
-        nullable=False
-    )
-
-    spam_score = Column(
-        Float,
-        nullable=False
-    )
-
-    manipulation_score = Column(
-        Float,
-        nullable=False
-    )
-
-    coordination_score = Column(
-        Float,
-        default=0
-    )
-
-    user_behavior_score = Column(
-        Float,
-        default=0
-    )
-
-    detected_suspicious = Column(
-        Boolean,
-        default=False
-    )
-
-    evidence = Column(
-        JSON,
-        nullable=True
-    )
-
-    analyzed_at = Column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
-
-    post = relationship(
-        "Post",
-        back_populates="analysis"
-    )
-
-
-class CommentAnalysis(Base):
-
-    __tablename__ = "comment_analysis"
-
-    id = Column(
-        String,
-        primary_key=True,
-        index=True
-    )
-
-    comment_id = Column(
-        String,
-        ForeignKey("comments.id"),
-        nullable=False,
-        unique=True,
-        index=True
-    )
-
-    risk_level = Column(
-        String,
-        nullable=False
-    )
-
-    risk_score = Column(
-        Float,
-        nullable=False
-    )
-
-    authenticity_score = Column(
-        Float,
-        nullable=False
-    )
-
-    spam_score = Column(
-        Float,
-        nullable=False
-    )
-
-    manipulation_score = Column(
-        Float,
-        nullable=False
-    )
-
-    duplicate_score = Column(
-        Float,
-        default=0
-    )
-
-    detected_suspicious = Column(
-        Boolean,
-        default=False
-    )
-
-    evidence = Column(
-        JSON,
-        nullable=True
-    )
-
-    analyzed_at = Column(
-        DateTime,
-        default=lambda: datetime.now(timezone.utc),
-        nullable=False
-    )
-
-    comment = relationship(
-        "Comment",
-        back_populates="analysis"
-    )
-
-
-# ============================================================
-# CREATE TABLES
-# ============================================================
-
-Base.metadata.create_all(
-    bind=engine
-)
-
-
-# ============================================================
-# FASTAPI
+# APP
 # ============================================================
 
 app = FastAPI(
-    title="TrustLens Social Platform API",
+    title="TrustLens Live Detection API",
+    description="TrustLens social demo with persistent PostgreSQL storage",
     version="2.0"
 )
 
@@ -337,24 +24,23 @@ app = FastAPI(
 # CORS
 # ============================================================
 
-frontend_url = os.getenv(
-    "FRONTEND_URL"
-)
-
-allowed_origins = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-]
-
-if frontend_url:
-    allowed_origins.append(
-        frontend_url
-    )
-
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://127.0.0.1:5176",
+
+        "https://trustlens-tau.vercel.app"
+    ],
+
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -362,150 +48,256 @@ app.add_middleware(
 
 
 # ============================================================
-# REQUEST MODELS
+# DATABASE
 # ============================================================
 
-class PostRequest(BaseModel):
-
-    text: str
-
-    user_id: str | None = None
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 
-class CommentRequest(BaseModel):
+def get_connection():
 
-    post_id: str
+    if not DATABASE_URL:
 
-    text: str
-
-    user_id: str | None = None
-
-
-# ============================================================
-# TRUSTLENS ANALYSIS ENGINE
-# ============================================================
-
-def analyze_text(text: str):
-
-    text = text.strip()
-
-    if not text:
-        raise ValueError(
-            "Text cannot be empty"
+        raise RuntimeError(
+            "DATABASE_URL environment variable is not configured"
         )
 
-    lower_text = text.lower()
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
 
 
-    # --------------------------------------------------------
-    # SPAM
-    # --------------------------------------------------------
+# ============================================================
+# DATABASE INITIALIZATION
+# ============================================================
 
-    spam_words = [
+def initialize_database():
+
+    connection = get_connection()
+
+    try:
+
+        cursor = connection.cursor()
+
+
+        # ====================================================
+        # USERS
+        # ====================================================
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+
+                user_id TEXT PRIMARY KEY,
+
+                timestamp TIMESTAMP NOT NULL,
+
+                source TEXT
+
+            )
+            """
+        )
+
+
+        # ====================================================
+        # POSTS
+        # ====================================================
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS posts (
+
+                post_id TEXT PRIMARY KEY,
+
+                user_id TEXT NOT NULL,
+
+                text TEXT NOT NULL,
+
+                timestamp TIMESTAMP NOT NULL,
+
+                likes INTEGER DEFAULT 0,
+
+                comments INTEGER DEFAULT 0,
+
+                source TEXT
+
+            )
+            """
+        )
+
+
+        # ====================================================
+        # ANALYSIS
+        # ====================================================
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analysis (
+
+                post_id TEXT PRIMARY KEY,
+
+                user_id TEXT NOT NULL,
+
+                text TEXT NOT NULL,
+
+                timestamp TIMESTAMP NOT NULL,
+
+                spam_score REAL DEFAULT 0,
+
+                duplicate_score REAL DEFAULT 0,
+
+                risk_score REAL DEFAULT 0,
+
+                risk_level TEXT,
+
+                suspicious BOOLEAN DEFAULT FALSE
+
+            )
+            """
+        )
+
+
+        connection.commit()
+
+        cursor.close()
+
+    finally:
+
+        connection.close()
+
+
+# ============================================================
+# STARTUP
+# ============================================================
+
+@app.on_event("startup")
+def startup():
+
+    initialize_database()
+
+
+# ============================================================
+# DATA MODELS
+# ============================================================
+
+class Post(BaseModel):
+
+    user: str
+    text: str
+
+
+class User(BaseModel):
+
+    username: str
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def normalize_text(text):
+
+    text = str(text).lower()
+
+    text = re.sub(
+        r"\s+",
+        " ",
+        text
+    )
+
+    return text.strip()
+
+
+# ============================================================
+# SPAM DETECTION
+# ============================================================
+
+def calculate_spam_score(text):
+
+    text_lower = normalize_text(text)
+
+
+    spam_keywords = [
+
         "buy now",
         "click here",
-        "free money",
         "limited offer",
+        "free money",
+        "earn money",
+        "visit now",
+        "subscribe now",
         "winner",
         "congratulations",
-        "earn money",
-        "visit link",
-        "subscribe",
-        "100% free"
-    ]
+        "free",
+        "discount",
+        "cash prize",
+        "make money",
+        "urgent",
+        "offer"
 
-    spam_matches = [
-        word
-        for word in spam_words
-        if word in lower_text
     ]
 
 
-    # --------------------------------------------------------
-    # REPETITION
-    # --------------------------------------------------------
-
-    words = lower_text.split()
-
-    repetition_score = 0
-
-    if len(words) >= 5:
-
-        unique_words = len(
-            set(words)
-        )
-
-        repetition_ratio = (
-            unique_words /
-            len(words)
-        )
-
-        if repetition_ratio < 0.5:
-            repetition_score = 30
-
-
-    # --------------------------------------------------------
-    # PUNCTUATION
-    # --------------------------------------------------------
-
-    punctuation_count = sum(
-        1
-        for char in text
-        if char in "!?"
-    )
-
-    punctuation_score = min(
-        punctuation_count * 5,
-        20
+    spam_hits = sum(
+        keyword in text_lower
+        for keyword in spam_keywords
     )
 
 
-    # --------------------------------------------------------
-    # SPAM SCORE
-    # --------------------------------------------------------
-
-    spam_score = min(
-        len(spam_matches) * 20
-        + repetition_score
-        + punctuation_score,
+    score = min(
+        spam_hits * 20,
         100
     )
 
 
-    # --------------------------------------------------------
-    # MANIPULATION
-    # --------------------------------------------------------
-
-    manipulation_words = [
-        "everyone",
-        "nobody",
-        "always",
-        "never",
-        "guaranteed",
-        "shocking",
-        "must share",
-        "urgent"
-    ]
-
-    manipulation_matches = [
-        word
-        for word in manipulation_words
-        if word in lower_text
-    ]
-
-    manipulation_score = min(
-        len(manipulation_matches) * 15,
-        100
-    )
+    return score
 
 
-    # --------------------------------------------------------
-    # RISK
-    # --------------------------------------------------------
+# ============================================================
+# DUPLICATE DETECTION
+# ============================================================
+
+def calculate_duplicate_score(
+    text,
+    previous_posts
+):
+
+    normalized = normalize_text(text)
+
+
+    for post in previous_posts:
+
+        previous_text = normalize_text(
+            post["text"]
+        )
+
+
+        if normalized == previous_text:
+
+            return 100
+
+
+    return 0
+
+
+# ============================================================
+# RISK CALCULATION
+# ============================================================
+
+def calculate_risk(
+    spam_score,
+    duplicate_score
+):
 
     risk_score = (
-        spam_score * 0.6
-        + manipulation_score * 0.4
+
+        spam_score * 0.5
+
+        +
+
+        duplicate_score * 0.5
+
     )
 
 
@@ -522,66 +314,10 @@ def analyze_text(text: str):
         risk_level = "LOW"
 
 
-    authenticity_score = round(
-        100 - risk_score,
+    return round(
+        risk_score,
         2
-    )
-
-    suspicious = (
-        risk_score >= 50
-    )
-
-
-    return {
-
-        "risk_level":
-            risk_level,
-
-        "risk_score":
-            round(
-                risk_score,
-                2
-            ),
-
-        "authenticity_score":
-            authenticity_score,
-
-        "spam_score":
-            round(
-                spam_score,
-                2
-            ),
-
-        "manipulation_score":
-            round(
-                manipulation_score,
-                2
-            ),
-
-        "coordination_score":
-            0,
-
-        "user_behavior_score":
-            0,
-
-        "detected_suspicious":
-            suspicious,
-
-        "evidence": {
-
-            "spam_matches":
-                spam_matches,
-
-            "manipulation_matches":
-                manipulation_matches,
-
-            "repetition_score":
-                repetition_score,
-
-            "punctuation_score":
-                punctuation_score
-        }
-    }
+    ), risk_level
 
 
 # ============================================================
@@ -592,148 +328,413 @@ def analyze_text(text: str):
 def root():
 
     return {
+
         "status": "online",
-        "service": "TrustLens Social Platform API",
-        "version": "2.0",
-        "database": (
-            "postgresql"
-            if DATABASE_URL.startswith("postgresql")
-            else "sqlite"
-        )
+
+        "service":
+            "TrustLens Live Detection API",
+
+        "version":
+            "2.0",
+
+        "database":
+            "PostgreSQL"
+
     }
 
 
 # ============================================================
-# HEALTH
+# HEALTH CHECK
 # ============================================================
 
 @app.get("/health")
 def health():
 
-    db = SessionLocal()
+    connection = get_connection()
 
     try:
 
-        db.execute(
-            __import__(
-                "sqlalchemy"
-            ).text(
-                "SELECT 1"
-            )
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT 1"
         )
 
-        database_status = "connected"
+        cursor.fetchone()
 
-    except Exception as exc:
+        cursor.close()
 
-        database_status = str(exc)
+        return {
+
+            "status": "healthy",
+
+            "database":
+                "connected",
+
+            "timestamp":
+                datetime.now().isoformat()
+
+        }
 
     finally:
 
-        db.close()
-
-
-    return {
-        "status": "healthy",
-        "database": database_status
-    }
+        connection.close()
 
 
 # ============================================================
-# CREATE POST
+# REGISTER USER
 # ============================================================
 
-@app.post("/posts")
-def create_post(post: PostRequest):
+@app.post("/users")
+def register_user(user: User):
 
-    text = post.text.strip()
+    username = str(
+        user.username
+    ).strip()
 
-    if not text:
+
+    if username == "":
 
         return {
+
             "success": False,
-            "message": "Post cannot be empty"
+
+            "message":
+                "Username cannot be empty"
+
         }
 
 
-    analysis = analyze_text(
-        text
-    )
-
-
-    post_id = str(
-        uuid.uuid4()
-    )
-
-    timestamp = datetime.now(
-        timezone.utc
-    )
-
-
-    db = SessionLocal()
+    connection = get_connection()
 
     try:
 
-        new_post = Post(
+        cursor = connection.cursor()
 
-            id=post_id,
 
-            text=text,
+        cursor.execute(
+            """
+            INSERT INTO users
+            (
+                user_id,
+                timestamp,
+                source
+            )
 
-            user_id=post.user_id,
+            VALUES
+            (
+                %s,
+                %s,
+                %s
+            )
 
-            timestamp=timestamp
+            ON CONFLICT (user_id)
+            DO NOTHING
+            """,
+
+            (
+                username,
+                datetime.now(),
+                "social-demo"
+            )
+
         )
 
-        db.add(
-            new_post
+
+        connection.commit()
+
+        cursor.close()
+
+
+        return {
+
+            "success": True,
+
+            "user_id":
+                username
+
+        }
+
+    finally:
+
+        connection.close()
+
+
+# ============================================================
+# RECEIVE + ANALYZE POST
+# ============================================================
+
+@app.post("/posts")
+def receive_post(post: Post):
+
+    username = str(
+        post.user
+    ).strip()
+
+
+    text = str(
+        post.text
+    ).strip()
+
+
+    if username == "":
+
+        return {
+
+            "success": False,
+
+            "message":
+                "User is required"
+
+        }
+
+
+    if text == "":
+
+        return {
+
+            "success": False,
+
+            "message":
+                "Post cannot be empty"
+
+        }
+
+
+    # ========================================================
+    # CREATE POST ID
+    # ========================================================
+
+    post_id = (
+
+        "POST_"
+
+        +
+
+        uuid.uuid4()
+        .hex[:10]
+        .upper()
+
+    )
+
+
+    timestamp = datetime.now()
+
+
+    # ========================================================
+    # DATABASE CONNECTION
+    # ========================================================
+
+    connection = get_connection()
+
+    try:
+
+        cursor = connection.cursor(
+            cursor_factory=RealDictCursor
         )
 
 
-        post_analysis = PostAnalysis(
+        # ====================================================
+        # GET PREVIOUS POSTS
+        # ====================================================
 
-            id=str(
-                uuid.uuid4()
-            ),
+        cursor.execute(
+            """
+            SELECT
+                post_id,
+                user_id,
+                text,
+                timestamp,
+                likes,
+                comments
 
-            post_id=post_id,
+            FROM posts
 
-            risk_level=
-                analysis["risk_level"],
-
-            risk_score=
-                analysis["risk_score"],
-
-            authenticity_score=
-                analysis["authenticity_score"],
-
-            spam_score=
-                analysis["spam_score"],
-
-            manipulation_score=
-                analysis["manipulation_score"],
-
-            coordination_score=
-                analysis["coordination_score"],
-
-            user_behavior_score=
-                analysis["user_behavior_score"],
-
-            detected_suspicious=
-                analysis["detected_suspicious"],
-
-            evidence=
-                analysis["evidence"],
-
-            analyzed_at=timestamp
+            ORDER BY timestamp ASC
+            """
         )
 
-        db.add(
-            post_analysis
+
+        previous_posts = cursor.fetchall()
+
+
+        # ====================================================
+        # DUPLICATE DETECTION
+        # ====================================================
+
+        duplicate_score = (
+
+            calculate_duplicate_score(
+                text,
+                previous_posts
+            )
+
         )
 
-        db.commit()
 
+        # ====================================================
+        # SPAM DETECTION
+        # ====================================================
+
+        spam_score = (
+
+            calculate_spam_score(
+                text
+            )
+
+        )
+
+
+        # ====================================================
+        # RISK
+        # ====================================================
+
+        risk_score, risk_level = (
+
+            calculate_risk(
+                spam_score,
+                duplicate_score
+            )
+
+        )
+
+
+        suspicious = (
+            risk_score >= 40
+        )
+
+
+        # ====================================================
+        # MAKE SURE USER EXISTS
+        # ====================================================
+
+        cursor.execute(
+            """
+            INSERT INTO users
+            (
+                user_id,
+                timestamp,
+                source
+            )
+
+            VALUES
+            (
+                %s,
+                %s,
+                %s
+            )
+
+            ON CONFLICT (user_id)
+            DO NOTHING
+            """,
+
+            (
+                username,
+                timestamp,
+                "social-demo"
+            )
+
+        )
+
+
+        # ====================================================
+        # SAVE POST
+        # ====================================================
+
+        cursor.execute(
+            """
+            INSERT INTO posts
+            (
+                post_id,
+                user_id,
+                text,
+                timestamp,
+                likes,
+                comments,
+                source
+            )
+
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s
+            )
+            """,
+
+            (
+                post_id,
+                username,
+                text,
+                timestamp,
+                0,
+                0,
+                "social-demo"
+            )
+
+        )
+
+
+        # ====================================================
+        # SAVE ANALYSIS
+        # ====================================================
+
+        cursor.execute(
+            """
+            INSERT INTO analysis
+            (
+                post_id,
+                user_id,
+                text,
+                timestamp,
+                spam_score,
+                duplicate_score,
+                risk_score,
+                risk_level,
+                suspicious
+            )
+
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s,
+                %s
+            )
+            """,
+
+            (
+                post_id,
+                username,
+                text,
+                timestamp,
+                spam_score,
+                duplicate_score,
+                risk_score,
+                risk_level,
+                suspicious
+            )
+
+        )
+
+
+        connection.commit()
+
+        cursor.close()
+
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return {
 
@@ -741,33 +742,58 @@ def create_post(post: PostRequest):
 
             "post": {
 
-                "id":
+                "post_id":
                     post_id,
+
+                "user_id":
+                    username,
 
                 "text":
                     text,
 
-                "user_id":
-                    post.user_id,
-
                 "timestamp":
-                    timestamp.isoformat()
+                    timestamp.isoformat(),
+
+                "likes":
+                    0,
+
+                "comments":
+                    0
+
             },
 
-            **analysis
+            "analysis": {
+
+                "spam_score":
+                    spam_score,
+
+                "duplicate_score":
+                    duplicate_score,
+
+                "risk_score":
+                    risk_score,
+
+                "risk_level":
+                    risk_level,
+
+                "suspicious":
+                    suspicious
+
+            }
+
         }
 
 
     except Exception:
 
-        db.rollback()
+        connection.rollback()
 
         raise
 
 
     finally:
 
-        db.close()
+        connection.close()
 
 
 # ============================================================
@@ -777,831 +803,385 @@ def create_post(post: PostRequest):
 @app.get("/posts")
 def get_posts():
 
-    db = SessionLocal()
+    connection = get_connection()
 
     try:
 
-        posts = (
-            db.query(Post)
-            .order_by(
-                Post.timestamp.desc()
-            )
-            .all()
+        cursor = connection.cursor(
+            cursor_factory=RealDictCursor
         )
 
-        result = []
 
+        cursor.execute(
+            """
+            SELECT
+
+                post_id,
+
+                user_id,
+
+                text,
+
+                timestamp,
+
+                likes,
+
+                comments,
+
+                source
+
+            FROM posts
+
+            ORDER BY timestamp DESC
+            """
+        )
+
+
+        posts = cursor.fetchall()
+
+
+        cursor.close()
+
+
+        # Convert timestamps to strings
         for post in posts:
 
-            analysis = post.analysis
+            if post["timestamp"]:
 
-            result.append({
+                post["timestamp"] = (
+                    post["timestamp"]
+                    .isoformat()
+                )
 
-                "id":
-                    post.id,
 
-                "text":
-                    post.text,
+        return posts
 
-                "user_id":
-                    post.user_id,
-
-                "timestamp":
-                    post.timestamp.isoformat(),
-
-                "risk_level":
-                    analysis.risk_level
-                    if analysis
-                    else "UNKNOWN",
-
-                "risk_score":
-                    analysis.risk_score
-                    if analysis
-                    else 0,
-
-                "authenticity_score":
-                    analysis.authenticity_score
-                    if analysis
-                    else 0,
-
-                "spam_score":
-                    analysis.spam_score
-                    if analysis
-                    else 0,
-
-                "manipulation_score":
-                    analysis.manipulation_score
-                    if analysis
-                    else 0,
-
-                "detected_suspicious":
-                    analysis.detected_suspicious
-                    if analysis
-                    else False,
-
-                "comment_count":
-                    len(post.comments)
-            })
-
-        return result
 
     finally:
 
-        db.close()
+        connection.close()
 
 
 # ============================================================
-# GET SINGLE POST
+# GET LIVE TRUSTLENS ANALYSIS
 # ============================================================
 
-@app.get("/posts/{post_id}")
-def get_post(post_id: str):
+@app.get("/analysis")
+def get_analysis():
 
-    db = SessionLocal()
+    connection = get_connection()
 
     try:
 
-        post = (
-            db.query(Post)
-            .filter(
-                Post.id == post_id
-            )
-            .first()
-        )
-
-        if not post:
-
-            raise HTTPException(
-                status_code=404,
-                detail="Post not found"
-            )
-
-
-        analysis = post.analysis
-
-
-        return {
-
-            "id":
-                post.id,
-
-            "text":
-                post.text,
-
-            "user_id":
-                post.user_id,
-
-            "timestamp":
-                post.timestamp.isoformat(),
-
-            "risk_level":
-                analysis.risk_level
-                if analysis
-                else "UNKNOWN",
-
-            "risk_score":
-                analysis.risk_score
-                if analysis
-                else 0,
-
-            "authenticity_score":
-                analysis.authenticity_score
-                if analysis
-                else 0,
-
-            "spam_score":
-                analysis.spam_score
-                if analysis
-                else 0,
-
-            "manipulation_score":
-                analysis.manipulation_score
-                if analysis
-                else 0,
-
-            "detected_suspicious":
-                analysis.detected_suspicious
-                if analysis
-                else False
-        }
-
-    finally:
-
-        db.close()
-
-
-# ============================================================
-# CREATE COMMENT
-# ============================================================
-
-@app.post("/comments")
-def create_comment(
-    comment: CommentRequest
-):
-
-    text = comment.text.strip()
-
-    if not text:
-
-        return {
-            "success": False,
-            "message": "Comment cannot be empty"
-        }
-
-
-    db = SessionLocal()
-
-    try:
-
-        post = (
-            db.query(Post)
-            .filter(
-                Post.id ==
-                comment.post_id
-            )
-            .first()
-        )
-
-        if not post:
-
-            raise HTTPException(
-                status_code=404,
-                detail="Post not found"
-            )
-
-
-        # ----------------------------------------------------
-        # Analyze comment
-        # ----------------------------------------------------
-
-        analysis = analyze_text(
-            text
+        cursor = connection.cursor(
+            cursor_factory=RealDictCursor
         )
 
 
-        # ----------------------------------------------------
-        # Basic duplicate detection
-        # ----------------------------------------------------
+        cursor.execute(
+            """
+            SELECT
 
-        existing_comments = (
-            db.query(Comment)
-            .filter(
-                Comment.post_id ==
-                comment.post_id
-            )
-            .all()
-        )
+                post_id,
 
+                user_id,
 
-        normalized_new = re.sub(
-            r"\s+",
-            " ",
-            text.lower()
-        ).strip()
+                text,
 
+                timestamp,
 
-        duplicate_score = 0
+                spam_score,
 
-
-        for existing in existing_comments:
-
-            normalized_existing = re.sub(
-                r"\s+",
-                " ",
-                existing.text.lower()
-            ).strip()
-
-
-            if (
-                normalized_existing ==
-                normalized_new
-            ):
-
-                duplicate_score = 100
-
-                break
-
-
-        # ----------------------------------------------------
-        # Combine duplicate with risk
-        # ----------------------------------------------------
-
-        final_risk = max(
-            analysis["risk_score"],
-            duplicate_score
-        )
-
-
-        if final_risk >= 70:
-
-            risk_level = "HIGH"
-
-        elif final_risk >= 40:
-
-            risk_level = "MEDIUM"
-
-        else:
-
-            risk_level = "LOW"
-
-
-        suspicious = (
-            final_risk >= 50
-        )
-
-
-        comment_id = str(
-            uuid.uuid4()
-        )
-
-        timestamp = datetime.now(
-            timezone.utc
-        )
-
-
-        # ----------------------------------------------------
-        # Save comment
-        # ----------------------------------------------------
-
-        new_comment = Comment(
-
-            id=comment_id,
-
-            post_id=
-                comment.post_id,
-
-            user_id=
-                comment.user_id,
-
-            text=text,
-
-            timestamp=timestamp
-        )
-
-        db.add(
-            new_comment
-        )
-
-
-        # ----------------------------------------------------
-        # Save analysis
-        # ----------------------------------------------------
-
-        comment_analysis = CommentAnalysis(
-
-            id=str(
-                uuid.uuid4()
-            ),
-
-            comment_id=
-                comment_id,
-
-            risk_level=
-                risk_level,
-
-            risk_score=
-                round(
-                    final_risk,
-                    2
-                ),
-
-            authenticity_score=
-                round(
-                    100 - final_risk,
-                    2
-                ),
-
-            spam_score=
-                analysis["spam_score"],
-
-            manipulation_score=
-                analysis[
-                    "manipulation_score"
-                ],
-
-            duplicate_score=
                 duplicate_score,
 
-            detected_suspicious=
-                suspicious,
+                risk_score,
 
-            evidence={
-                **analysis["evidence"],
-                "duplicate":
-                    duplicate_score > 0
-            },
+                risk_level,
 
-            analyzed_at=
-                timestamp
+                suspicious
+
+            FROM analysis
+
+            ORDER BY timestamp DESC
+            """
         )
 
-        db.add(
-            comment_analysis
+
+        results = cursor.fetchall()
+
+
+        cursor.close()
+
+
+        for result in results:
+
+            if result["timestamp"]:
+
+                result["timestamp"] = (
+                    result["timestamp"]
+                    .isoformat()
+                )
+
+
+        return results
+
+
+    finally:
+
+        connection.close()
+
+
+# ============================================================
+# GET ANALYSIS FOR ONE POST
+# ============================================================
+
+@app.get("/analysis/{post_id}")
+def get_post_analysis(post_id: str):
+
+    connection = get_connection()
+
+    try:
+
+        cursor = connection.cursor(
+            cursor_factory=RealDictCursor
         )
 
-        db.commit()
+
+        cursor.execute(
+            """
+            SELECT
+
+                post_id,
+
+                user_id,
+
+                text,
+
+                timestamp,
+
+                spam_score,
+
+                duplicate_score,
+
+                risk_score,
+
+                risk_level,
+
+                suspicious
+
+            FROM analysis
+
+            WHERE post_id = %s
+            """,
+
+            (
+                post_id,
+            )
+
+        )
+
+
+        result = cursor.fetchone()
+
+
+        cursor.close()
+
+
+        if result is None:
+
+            return {
+
+                "success": False,
+
+                "message":
+                    "Post analysis not found"
+
+            }
+
+
+        if result["timestamp"]:
+
+            result["timestamp"] = (
+                result["timestamp"]
+                .isoformat()
+            )
 
 
         return {
 
             "success": True,
 
-            "comment": {
+            "analysis":
+                result
 
-                "id":
-                    comment_id,
-
-                "post_id":
-                    comment.post_id,
-
-                "user_id":
-                    comment.user_id,
-
-                "text":
-                    text,
-
-                "timestamp":
-                    timestamp.isoformat()
-            },
-
-            "risk_level":
-                risk_level,
-
-            "risk_score":
-                round(
-                    final_risk,
-                    2
-                ),
-
-            "authenticity_score":
-                round(
-                    100 - final_risk,
-                    2
-                ),
-
-            "spam_score":
-                analysis["spam_score"],
-
-            "manipulation_score":
-                analysis[
-                    "manipulation_score"
-                ],
-
-            "duplicate_score":
-                duplicate_score,
-
-            "detected_suspicious":
-                suspicious,
-
-            "evidence":
-                {
-                    **analysis["evidence"],
-                    "duplicate":
-                        duplicate_score > 0
-                }
         }
 
 
-    except HTTPException:
-
-        db.rollback()
-
-        raise
-
-
-    except Exception:
-
-        db.rollback()
-
-        raise
-
-
     finally:
 
-        db.close()
+        connection.close()
 
 
 # ============================================================
-# GET COMMENTS FOR A POST
-# ============================================================
-
-@app.get("/posts/{post_id}/comments")
-def get_post_comments(
-    post_id: str
-):
-
-    db = SessionLocal()
-
-    try:
-
-        post = (
-            db.query(Post)
-            .filter(
-                Post.id == post_id
-            )
-            .first()
-        )
-
-        if not post:
-
-            raise HTTPException(
-                status_code=404,
-                detail="Post not found"
-            )
-
-
-        comments = (
-            db.query(Comment)
-            .filter(
-                Comment.post_id ==
-                post_id
-            )
-            .order_by(
-                Comment.timestamp.asc()
-            )
-            .all()
-        )
-
-
-        result = []
-
-
-        for comment in comments:
-
-            analysis = (
-                comment.analysis
-            )
-
-
-            result.append({
-
-                "id":
-                    comment.id,
-
-                "post_id":
-                    comment.post_id,
-
-                "user_id":
-                    comment.user_id,
-
-                "text":
-                    comment.text,
-
-                "timestamp":
-                    comment.timestamp.isoformat(),
-
-                "risk_level":
-                    analysis.risk_level
-                    if analysis
-                    else "UNKNOWN",
-
-                "risk_score":
-                    analysis.risk_score
-                    if analysis
-                    else 0,
-
-                "authenticity_score":
-                    analysis.authenticity_score
-                    if analysis
-                    else 0,
-
-                "spam_score":
-                    analysis.spam_score
-                    if analysis
-                    else 0,
-
-                "duplicate_score":
-                    analysis.duplicate_score
-                    if analysis
-                    else 0,
-
-                "detected_suspicious":
-                    analysis.detected_suspicious
-                    if analysis
-                    else False
-            })
-
-
-        return result
-
-
-    finally:
-
-        db.close()
-
-
-# ============================================================
-# GLOBAL TRUSTLENS ANALYSIS
-# ============================================================
-
-@app.get("/analysis")
-def get_analysis():
-
-    db = SessionLocal()
-
-    try:
-
-        records = (
-            db.query(
-                PostAnalysis,
-                Post
-            )
-            .join(
-                Post,
-                Post.id ==
-                PostAnalysis.post_id
-            )
-            .order_by(
-                PostAnalysis.analyzed_at.desc()
-            )
-            .all()
-        )
-
-
-        result = []
-
-
-        for analysis, post in records:
-
-            result.append({
-
-                "post_id":
-                    post.id,
-
-                "user_id":
-                    post.user_id,
-
-                "text":
-                    post.text,
-
-                "timestamp":
-                    post.timestamp.isoformat(),
-
-                "risk_level":
-                    analysis.risk_level,
-
-                "risk_score":
-                    analysis.risk_score,
-
-                "authenticity_score":
-                    analysis.authenticity_score,
-
-                "spam_score":
-                    analysis.spam_score,
-
-                "manipulation_score":
-                    analysis.manipulation_score,
-
-                "coordination_score":
-                    analysis.coordination_score,
-
-                "user_behavior_score":
-                    analysis.user_behavior_score,
-
-                "suspicious":
-                    analysis.detected_suspicious,
-
-                "is_suspicious":
-                    analysis.detected_suspicious,
-
-                "flagged":
-                    analysis.detected_suspicious,
-
-                "analysis_timestamp":
-                    analysis.analyzed_at.isoformat(),
-
-                "evidence":
-                    analysis.evidence
-            })
-
-
-        return result
-
-
-    finally:
-
-        db.close()
-
-
-# ============================================================
-# COMMENT ANALYSIS
-# ============================================================
-
-@app.get("/comment-analysis")
-def get_comment_analysis():
-
-    db = SessionLocal()
-
-    try:
-
-        records = (
-            db.query(
-                CommentAnalysis,
-                Comment
-            )
-            .join(
-                Comment,
-                Comment.id ==
-                CommentAnalysis.comment_id
-            )
-            .order_by(
-                CommentAnalysis.analyzed_at.desc()
-            )
-            .all()
-        )
-
-
-        result = []
-
-
-        for analysis, comment in records:
-
-            result.append({
-
-                "comment_id":
-                    comment.id,
-
-                "post_id":
-                    comment.post_id,
-
-                "user_id":
-                    comment.user_id,
-
-                "text":
-                    comment.text,
-
-                "timestamp":
-                    comment.timestamp.isoformat(),
-
-                "risk_level":
-                    analysis.risk_level,
-
-                "risk_score":
-                    analysis.risk_score,
-
-                "authenticity_score":
-                    analysis.authenticity_score,
-
-                "spam_score":
-                    analysis.spam_score,
-
-                "duplicate_score":
-                    analysis.duplicate_score,
-
-                "manipulation_score":
-                    analysis.manipulation_score,
-
-                "suspicious":
-                    analysis.detected_suspicious,
-
-                "is_suspicious":
-                    analysis.detected_suspicious,
-
-                "flagged":
-                    analysis.detected_suspicious,
-
-                "analysis_timestamp":
-                    analysis.analyzed_at.isoformat(),
-
-                "evidence":
-                    analysis.evidence
-            })
-
-
-        return result
-
-
-    finally:
-
-        db.close()
-
-
-# ============================================================
-# DATABASE STATISTICS
+# LIVE STATISTICS
 # ============================================================
 
 @app.get("/stats")
 def get_stats():
 
-    db = SessionLocal()
+    connection = get_connection()
 
     try:
 
-        posts_count = (
-            db.query(Post)
-            .count()
+        cursor = connection.cursor(
+            cursor_factory=RealDictCursor
         )
 
-        comments_count = (
-            db.query(Comment)
-            .count()
+
+        # ====================================================
+        # USERS
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM users
+            """
         )
 
-        suspicious_posts = (
-            db.query(PostAnalysis)
-            .filter(
-                PostAnalysis.detected_suspicious
-                == True
-            )
-            .count()
+        users = cursor.fetchone()["count"]
+
+
+        # ====================================================
+        # POSTS
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM posts
+            """
         )
 
-        suspicious_comments = (
-            db.query(CommentAnalysis)
-            .filter(
-                CommentAnalysis.detected_suspicious
-                == True
-            )
-            .count()
+        posts = cursor.fetchone()["count"]
+
+
+        # ====================================================
+        # ANALYZED POSTS
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM analysis
+            """
         )
+
+        analyzed_posts = (
+            cursor.fetchone()["count"]
+        )
+
+
+        # ====================================================
+        # HIGH RISK
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM analysis
+            WHERE UPPER(risk_level) = 'HIGH'
+            """
+        )
+
+        high_risk = (
+            cursor.fetchone()["count"]
+        )
+
+
+        # ====================================================
+        # MEDIUM RISK
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM analysis
+            WHERE UPPER(risk_level) = 'MEDIUM'
+            """
+        )
+
+        medium_risk = (
+            cursor.fetchone()["count"]
+        )
+
+
+        # ====================================================
+        # LOW RISK
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM analysis
+            WHERE UPPER(risk_level) = 'LOW'
+            """
+        )
+
+        low_risk = (
+            cursor.fetchone()["count"]
+        )
+
+
+        # ====================================================
+        # SUSPICIOUS
+        # ====================================================
+
+        cursor.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM analysis
+            WHERE suspicious = TRUE
+            """
+        )
+
+        suspicious = (
+            cursor.fetchone()["count"]
+        )
+
+
+        cursor.close()
 
 
         return {
 
-            "posts":
-                posts_count,
+            "users":
+                int(users),
 
-            "comments":
-                comments_count,
+            "posts":
+                int(posts),
 
             "analyzed_posts":
-                db.query(
-                    PostAnalysis
-                ).count(),
-
-            "analyzed_comments":
-                db.query(
-                    CommentAnalysis
-                ).count(),
+                int(analyzed_posts),
 
             "suspicious_posts":
-                suspicious_posts,
+                int(suspicious),
 
-            "suspicious_comments":
-                suspicious_comments
+            "high_risk":
+                int(high_risk),
+
+            "medium_risk":
+                int(medium_risk),
+
+            "low_risk":
+                int(low_risk),
+
+            "timestamp":
+                datetime.now().isoformat()
+
         }
 
 
     finally:
 
-        db.close()
-
-
-# ============================================================
-# RUN SERVER
-# ============================================================
-
-if __name__ == "__main__":
-
-    import uvicorn
-
-    uvicorn.run(
-        app,
-        host="0.0.0.0",
-        port=int(
-            os.getenv(
-                "PORT",
-                "8000"
-            )
-        )
-    )
+        connection.close()
