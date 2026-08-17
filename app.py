@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+import requests
 import plotly.express as px
 import plotly.graph_objects as go
 from pathlib import Path
@@ -10,6 +11,7 @@ import random
 import re
 import subprocess
 import sys
+RENDER_API = "https://trustlens-9idp.onrender.com"
 
 
 # ============================================================
@@ -22,7 +24,32 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+@st.cache_data(ttl=5)
+def load_live_analysis():
 
+    try:
+
+        response = requests.get(
+            f"{RENDER_API}/analysis",
+            timeout=15
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        if not data:
+            return pd.DataFrame()
+
+        return pd.DataFrame(data)
+
+    except Exception as e:
+
+        st.error(
+            f"Unable to connect to TrustLens Live API: {e}"
+        )
+
+        return pd.DataFrame()
 
 # ============================================================
 # CUSTOM CSS
@@ -420,7 +447,7 @@ recommendation_ranking = load_csv("recommendation_ranking.csv")
 ensure_live_dir()
 
 live_posts = load_live_csv("posts.csv")
-live_analysis = load_live_csv("live_analysis.csv")
+live_analysis = load_live_analysis()
 live_users = load_live_csv("users.csv")
 
 

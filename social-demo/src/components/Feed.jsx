@@ -2,6 +2,8 @@ import { useState } from "react";
 import CreatePost from "./CreatePost";
 import TrustLensDashboard from "./TrustLensDashboard";
 
+const BACKEND_URL = "https://trustlens-9idp.onrender.com";
+
 function Feed({ user, onLogout }) {
 
   const [posts, setPosts] = useState([
@@ -11,6 +13,7 @@ function Feed({ user, onLogout }) {
       text: "Amazing product! Everyone should try this.",
       likes: 24,
       comments: 5,
+      analysis: null
     },
     {
       id: "initial-2",
@@ -18,6 +21,7 @@ function Feed({ user, onLogout }) {
       text: "This news is completely unbelievable!",
       likes: 12,
       comments: 3,
+      analysis: null
     }
   ]);
 
@@ -31,8 +35,13 @@ function Feed({ user, onLogout }) {
 
     try {
 
+      console.log("Sending post to TrustLens:", {
+        user,
+        text
+      });
+
       const response = await fetch(
-        "https://trustlens-9idp.onrender.com/posts",
+        `${BACKEND_URL}/posts`,
         {
           method: "POST",
 
@@ -47,70 +56,121 @@ function Feed({ user, onLogout }) {
         }
       );
 
-      if (!response.ok) {
-        throw new Error(
-          `TrustLens server returned ${response.status}`
-        );
-      }
+      // --------------------------------------------------------
+      // READ RESPONSE
+      // --------------------------------------------------------
 
       const result = await response.json();
 
       console.log(
-        "TrustLens received post:",
+        "TrustLens backend response:",
         result
       );
 
+      // --------------------------------------------------------
+      // HANDLE BACKEND ERROR
+      // --------------------------------------------------------
+
+      if (!response.ok) {
+
+        throw new Error(
+          result.message ||
+          `TrustLens server returned ${response.status}`
+        );
+
+      }
+
+      if (result.success === false) {
+
+        throw new Error(
+          result.message ||
+          "TrustLens rejected the post"
+        );
+
+      }
+
+      // --------------------------------------------------------
+      // GET POST DATA
+      // --------------------------------------------------------
+
+      const backendPost =
+        result.post || {};
+
+      const analysis =
+        result.analysis || null;
+
+
       console.log(
         "TrustLens analysis:",
-        result.analysis
+        analysis
       );
 
 
-      // ============================================================
-      // ADD POST TO SOCIAL FEED
-      // ============================================================
+      // --------------------------------------------------------
+      // CREATE LOCAL POST OBJECT
+      // --------------------------------------------------------
 
       const newPost = {
 
         id:
-          result.post?.post_id ||
+          backendPost.post_id ||
           result.post_id ||
           `POST_${Date.now()}`,
 
         user:
-          result.post?.user_id ||
+          backendPost.user_id ||
           user,
 
         text:
-          result.post?.text ||
+          backendPost.text ||
           text,
 
         likes: 0,
 
         comments: 0,
 
-        analysis:
-          result.analysis || null
+        analysis: analysis
+
       };
 
 
+      console.log(
+        "Adding post to social feed:",
+        newPost
+      );
+
+
+      // --------------------------------------------------------
+      // ADD TO FEED
+      // --------------------------------------------------------
+
       setPosts((previousPosts) => [
+
         newPost,
+
         ...previousPosts
+
       ]);
 
+
+      // --------------------------------------------------------
+      // RETURN RESULT TO CREATE POST
+      // --------------------------------------------------------
 
       return result;
 
     } catch (error) {
 
       console.error(
-        "Error connecting to TrustLens backend:",
+        "TrustLens backend connection error:",
         error
       );
 
+      // Let CreatePost handle the error
       throw error;
+
     }
+
   };
 
 
@@ -143,7 +203,9 @@ function Feed({ user, onLogout }) {
       <header className="navbar">
 
         <div className="nav-logo">
+
           🔍 TrustLens
+
         </div>
 
 
@@ -162,7 +224,11 @@ function Feed({ user, onLogout }) {
               )
             }
           >
-            TrustLens Analysis
+
+            {showDashboard
+              ? "Back to Feed"
+              : "TrustLens Analysis"}
+
           </button>
 
 
@@ -170,7 +236,9 @@ function Feed({ user, onLogout }) {
             className="logout-btn"
             onClick={handleLogout}
           >
+
             Logout
+
           </button>
 
         </div>
@@ -184,21 +252,29 @@ function Feed({ user, onLogout }) {
 
       <main className="feed-container">
 
+
         {!showDashboard ? (
 
           <>
 
-            {/* CREATE POST */}
+
+            {/* ==================================================
+                CREATE POST
+            ================================================== */}
 
             <CreatePost
               onPost={addPost}
             />
 
 
-            {/* FEED TITLE */}
+            {/* ==================================================
+                FEED TITLE
+            ================================================== */}
 
             <h2 className="feed-title">
+
               Social Feed
+
             </h2>
 
 
@@ -214,9 +290,12 @@ function Feed({ user, onLogout }) {
               >
 
 
-                {/* USER */}
+                {/* ==================================================
+                    USER
+                ================================================== */}
 
                 <div className="post-header">
+
 
                   <div className="avatar">
 
@@ -234,18 +313,25 @@ function Feed({ user, onLogout }) {
                     </strong>
 
                     <span className="username">
+
                       @{post.user?.toLowerCase()}
+
                     </span>
 
                   </div>
 
+
                 </div>
 
 
-                {/* POST TEXT */}
+                {/* ==================================================
+                    POST TEXT
+                ================================================== */}
 
                 <p className="post-text">
+
                   {post.text}
+
                 </p>
 
 
@@ -257,41 +343,62 @@ function Feed({ user, onLogout }) {
 
                   <div className="trustlens-result">
 
+
                     <strong>
+
                       🛡️ TrustLens Analysis
+
                     </strong>
 
 
                     <div>
+
                       Spam Score:{" "}
-                      {post.analysis.spam_score}
+
+                      {post.analysis.spam_score ?? 0}
+
                     </div>
 
 
                     <div>
+
                       Duplicate Score:{" "}
-                      {post.analysis.duplicate_score}
+
+                      {post.analysis.duplicate_score ?? 0}
+
                     </div>
 
 
                     <div>
+
                       Risk Score:{" "}
-                      {post.analysis.risk_score}
+
+                      {post.analysis.risk_score ?? 0}
+
                     </div>
 
 
                     <div>
+
                       Risk Level:{" "}
-                      {post.analysis.risk_level}
+
+                      {post.analysis.risk_level ?? "UNKNOWN"}
+
                     </div>
 
 
                     <div>
+
                       Status:{" "}
-                      {post.analysis.suspicious
+
+                      {post.analysis.suspicious === true
+
                         ? "⚠️ SUSPICIOUS"
+
                         : "✅ SAFE"}
+
                     </div>
+
 
                   </div>
 
@@ -304,27 +411,44 @@ function Feed({ user, onLogout }) {
 
                 <div className="post-actions">
 
+
                   <span>
+
                     ❤️ {post.likes}
+
                   </span>
 
+
                   <span>
+
                     💬 {post.comments}
+
                   </span>
 
+
                   <span>
+
                     ↗ Share
+
                   </span>
+
 
                 </div>
+
 
               </div>
 
             ))}
 
+
           </>
 
         ) : (
+
+
+          /* ====================================================
+             TRUSTLENS DASHBOARD
+          ==================================================== */
 
           <TrustLensDashboard
             posts={posts}
