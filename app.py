@@ -1,17 +1,37 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import requests
-import plotly.express as px
-import plotly.graph_objects as go
-from pathlib import Path
-from textwrap import dedent
-from datetime import datetime
-import random
+import os
 import re
+import html
 import subprocess
 import sys
-RENDER_API = "https://trustlens-9idp.onrender.com"
+from pathlib import Path
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import requests
+import streamlit as st
+from textwrap import dedent
+
+
+# ============================================================
+# CONFIGURATION
+# ============================================================
+
+DEFAULT_RENDER_API = "https://trustlens-9idp.onrender.com"
+
+RENDER_API = os.getenv(
+    "TRUSTLENS_API_URL",
+    DEFAULT_RENDER_API
+).rstrip("/")
+
+API_TIMEOUT = int(
+    os.getenv("TRUSTLENS_API_TIMEOUT", "20")
+)
+
+DETECTOR_TIMEOUT = int(
+    os.getenv("TRUSTLENS_DETECTOR_TIMEOUT", "120")
+)
 
 
 # ============================================================
@@ -24,32 +44,7 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-@st.cache_data(ttl=5)
-def load_live_analysis():
 
-    try:
-
-        response = requests.get(
-            f"{RENDER_API}/analysis",
-            timeout=15
-        )
-
-        response.raise_for_status()
-
-        data = response.json()
-
-        if not data:
-            return pd.DataFrame()
-
-        return pd.DataFrame(data)
-
-    except Exception as e:
-
-        st.error(
-            f"Unable to connect to TrustLens Live API: {e}"
-        )
-
-        return pd.DataFrame()
 
 # ============================================================
 # CUSTOM CSS
@@ -67,15 +62,29 @@ html, body, [class*="css"] {
 
 .stApp {
     background:
-        radial-gradient(circle at 10% 10%, rgba(30,100,255,0.10), transparent 30%),
-        radial-gradient(circle at 90% 20%, rgba(120,60,255,0.08), transparent 30%),
+        radial-gradient(
+            circle at 10% 10%,
+            rgba(30,100,255,0.10),
+            transparent 30%
+        ),
+        radial-gradient(
+            circle at 90% 20%,
+            rgba(120,60,255,0.08),
+            transparent 30%
+        ),
         #080d18;
     color: #f5f7fb;
 }
 
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0c1322 0%, #080d18 100%);
-    border-right: 1px solid rgba(255,255,255,0.08);
+    background:
+        linear-gradient(
+            180deg,
+            #0c1322 0%,
+            #080d18 100%
+        );
+    border-right:
+        1px solid rgba(255,255,255,0.08);
 }
 
 section[data-testid="stSidebar"] * {
@@ -89,12 +98,19 @@ section[data-testid="stSidebar"] * {
 }
 
 .hero {
-    background: linear-gradient(135deg, rgba(21,35,65,0.95), rgba(11,18,33,0.95));
-    border: 1px solid rgba(110,160,255,0.18);
+    background:
+        linear-gradient(
+            135deg,
+            rgba(21,35,65,0.97),
+            rgba(11,18,33,0.97)
+        );
+    border:
+        1px solid rgba(110,160,255,0.18);
     border-radius: 24px;
     padding: 42px;
     margin-bottom: 30px;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.30);
+    box-shadow:
+        0 20px 60px rgba(0,0,0,0.30);
 }
 
 .hero-title {
@@ -105,7 +121,12 @@ section[data-testid="stSidebar"] * {
 }
 
 .hero-title span {
-    background: linear-gradient(90deg, #ffffff, #79aaff);
+    background:
+        linear-gradient(
+            90deg,
+            #ffffff,
+            #79aaff
+        );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -114,7 +135,7 @@ section[data-testid="stSidebar"] * {
     color: #91a4c4;
     font-size: 17px;
     line-height: 1.6;
-    max-width: 800px;
+    max-width: 850px;
 }
 
 .status {
@@ -136,7 +157,14 @@ section[data-testid="stSidebar"] * {
     height: 8px;
     background: #45e493;
     border-radius: 50%;
-    box-shadow: 0 0 12px rgba(69,228,147,0.8);
+    box-shadow:
+        0 0 12px rgba(69,228,147,0.8);
+}
+
+.status-dot.offline {
+    background: #ff6666;
+    box-shadow:
+        0 0 12px rgba(255,80,80,0.8);
 }
 
 .section-title {
@@ -153,12 +181,19 @@ section[data-testid="stSidebar"] * {
 }
 
 .kpi-card {
-    background: linear-gradient(145deg, rgba(24,34,55,0.98), rgba(14,22,38,0.98));
-    border: 1px solid rgba(255,255,255,0.07);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(24,34,55,0.98),
+            rgba(14,22,38,0.98)
+        );
+    border:
+        1px solid rgba(255,255,255,0.07);
     border-radius: 18px;
     padding: 23px;
     min-height: 135px;
-    box-shadow: 0 10px 35px rgba(0,0,0,0.20);
+    box-shadow:
+        0 10px 35px rgba(0,0,0,0.20);
 }
 
 .kpi-label {
@@ -183,8 +218,10 @@ section[data-testid="stSidebar"] * {
 }
 
 .info-card {
-    background: rgba(20,29,47,0.80);
-    border: 1px solid rgba(255,255,255,0.07);
+    background:
+        rgba(20,29,47,0.80);
+    border:
+        1px solid rgba(255,255,255,0.07);
     border-radius: 17px;
     padding: 22px;
     margin-bottom: 15px;
@@ -203,8 +240,14 @@ section[data-testid="stSidebar"] * {
 }
 
 .attack-card {
-    background: linear-gradient(145deg, rgba(20,32,55,0.98), rgba(12,20,36,0.98));
-    border: 1px solid rgba(105,150,255,0.18);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20,32,55,0.98),
+            rgba(12,20,36,0.98)
+        );
+    border:
+        1px solid rgba(105,150,255,0.18);
     border-radius: 20px;
     padding: 25px;
     margin-bottom: 20px;
@@ -247,12 +290,14 @@ section[data-testid="stSidebar"] * {
 }
 
 .live-post-card {
-    background: linear-gradient(
-        145deg,
-        rgba(20,31,52,0.98),
-        rgba(11,19,34,0.98)
-    );
-    border: 1px solid rgba(110,160,255,0.14);
+    background:
+        linear-gradient(
+            145deg,
+            rgba(20,31,52,0.98),
+            rgba(11,19,34,0.98)
+        );
+    border:
+        1px solid rgba(110,160,255,0.14);
     border-radius: 18px;
     padding: 22px;
     margin-bottom: 15px;
@@ -272,37 +317,32 @@ section[data-testid="stSidebar"] * {
     margin-bottom: 15px;
 }
 
-.live-badge-safe {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(50,220,130,0.10);
-    border: 1px solid rgba(50,220,130,0.25);
-    color: #6ce6a4;
-    font-size: 11px;
-    font-weight: 700;
-}
-
-.live-badge-warning {
-    display: inline-block;
-    padding: 6px 12px;
-    border-radius: 999px;
-    background: rgba(255,185,65,0.10);
-    border: 1px solid rgba(255,185,65,0.25);
-    color: #ffd27a;
-    font-size: 11px;
-    font-weight: 700;
-}
-
+.live-badge-safe,
+.live-badge-warning,
 .live-badge-danger {
     display: inline-block;
     padding: 6px 12px;
     border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.live-badge-safe {
+    background: rgba(50,220,130,0.10);
+    border: 1px solid rgba(50,220,130,0.25);
+    color: #6ce6a4;
+}
+
+.live-badge-warning {
+    background: rgba(255,185,65,0.10);
+    border: 1px solid rgba(255,185,65,0.25);
+    color: #ffd27a;
+}
+
+.live-badge-danger {
     background: rgba(255,70,70,0.10);
     border: 1px solid rgba(255,70,70,0.25);
     color: #ff8585;
-    font-size: 11px;
-    font-weight: 700;
 }
 
 .footer {
@@ -334,20 +374,29 @@ div[data-testid="stButton"] > button:hover {
 
 
 # ============================================================
-# SAFE HTML RENDERER
+# HTML HELPERS
 # ============================================================
 
-def render_html(html):
-    html = dedent(html).strip()
+def render_html(content):
+    content = dedent(content).strip()
 
     if hasattr(st, "html"):
-        st.html(html)
+        st.html(content)
     else:
-        st.markdown(html, unsafe_allow_html=True)
+        st.markdown(
+            content,
+            unsafe_allow_html=True
+        )
+
+
+def safe_html(value):
+    return html.escape(
+        str(value)
+    )
 
 
 # ============================================================
-# FILE LOCATIONS
+# PATHS
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -357,15 +406,54 @@ DATA_LOCATIONS = [
     BASE_DIR / "src" / "data"
 ]
 
-# Live data generated by the FastAPI social-media backend
-LIVE_DATA_DIR = BASE_DIR / "data" / "live"
+LIVE_DATA_DIR = (
+    BASE_DIR /
+    "data" /
+    "live"
+)
 
-ATTACK_DATA_DIR = BASE_DIR / "data" / "simulated_attacks"
-ATTACK_RESULTS_DIR = BASE_DIR / "data" / "attack_results"
+ATTACK_DATA_DIR = (
+    BASE_DIR /
+    "data" /
+    "simulated_attacks"
+)
 
+ATTACK_RESULTS_DIR = (
+    BASE_DIR /
+    "data" /
+    "attack_results"
+)
+
+
+def ensure_directories():
+
+    LIVE_DATA_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    ATTACK_DATA_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    ATTACK_RESULTS_DIR.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+
+ensure_directories()
+
+
+# ============================================================
+# GENERAL DATA HELPERS
+# ============================================================
 
 def find_data_file(filename):
+
     for directory in DATA_LOCATIONS:
+
         path = directory / filename
 
         if path.exists():
@@ -374,20 +462,7 @@ def find_data_file(filename):
     return None
 
 
-def ensure_attack_dirs():
-    ATTACK_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    ATTACK_RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-
-
-def ensure_live_dir():
-    LIVE_DATA_DIR.mkdir(parents=True, exist_ok=True)
-
-
-# ============================================================
-# DATA LOADER
-# ============================================================
-
-@st.cache_data
+@st.cache_data(ttl=30)
 def load_csv(filename):
 
     path = find_data_file(filename)
@@ -396,17 +471,17 @@ def load_csv(filename):
         return None
 
     try:
-        return pd.read_csv(path)
+
+        return pd.read_csv(
+            path,
+            low_memory=False
+        )
 
     except Exception:
         return None
 
 
-# ============================================================
-# LIVE DATA LOADER
-# ============================================================
-
-@st.cache_data(ttl=2)
+@st.cache_data(ttl=5)
 def load_live_csv(filename):
 
     path = LIVE_DATA_DIR / filename
@@ -415,66 +490,70 @@ def load_live_csv(filename):
         return None
 
     try:
-        return pd.read_csv(path)
+
+        return pd.read_csv(
+            path,
+            low_memory=False
+        )
 
     except Exception:
         return None
 
 
-# ============================================================
-# LOAD TRUSTLENS DATASETS
-# ============================================================
-
-scores = load_csv("trustlens_scores.csv")
-users = load_csv("users.csv")
-users_scored = load_csv("users_scored.csv")
-comments = load_csv("comments.csv")
-comments_scored = load_csv("comments_scored.csv")
-ratings = load_csv("ratings.csv")
-rating_analysis = load_csv("rating_analysis.csv")
-items = load_csv("items.csv")
-interactions = load_csv("interactions.csv")
-coordination = load_csv("coordination_events.csv")
-graph_features = load_csv("graph_features.csv")
-recommendation_impact = load_csv("recommendation_impact.csv")
-recommendation_ranking = load_csv("recommendation_ranking.csv")
-
-
-# ============================================================
-# LOAD LIVE SOCIAL MEDIA DATA
-# ============================================================
-
-ensure_live_dir()
-
-live_posts = load_live_csv("posts.csv")
-live_analysis = load_live_analysis()
-live_users = load_live_csv("users.csv")
-
-
-# ============================================================
-# HELPERS
-# ============================================================
-
-def first_existing_column(df, candidates):
+def first_existing_column(
+    df,
+    candidates
+):
 
     if df is None:
         return None
 
-    for col in candidates:
+    normalized = {
+        str(c).strip().lower(): c
+        for c in df.columns
+    }
 
-        if col in df.columns:
-            return col
+    for candidate in candidates:
+
+        key = str(candidate).strip().lower()
+
+        if key in normalized:
+            return normalized[key]
 
     return None
 
 
-def safe_numeric(df, column):
+def safe_numeric(
+    df,
+    column
+):
 
-    if df is None or column not in df.columns:
-        return pd.Series(dtype=float)
+    if (
+        df is None
+        or column is None
+        or column not in df.columns
+    ):
+        return pd.Series(
+            0.0,
+            index=(
+                df.index
+                if df is not None
+                else []
+            )
+        )
+
+    values = (
+        df[column]
+        .astype(str)
+        .str.replace(
+            "%",
+            "",
+            regex=False
+        )
+    )
 
     return pd.to_numeric(
-        df[column],
+        values,
         errors="coerce"
     ).fillna(0)
 
@@ -515,12 +594,35 @@ def get_user_column(df):
     )
 
 
-def display_dataframe(df, height=430):
+def normalize_dataframe(df):
 
-    if df is None or df.empty:
+    if df is None:
+        return None
+
+    result = df.copy()
+
+    result.columns = [
+        str(column)
+        .strip()
+        .lower()
+        for column in result.columns
+    ]
+
+    return result
+
+
+def display_dataframe(
+    df,
+    height=430
+):
+
+    if (
+        df is None
+        or df.empty
+    ):
 
         st.info(
-            "No data available for this section."
+            "No data available."
         )
 
         return
@@ -533,6 +635,10 @@ def display_dataframe(df, height=430):
     )
 
 
+# ============================================================
+# UI HELPERS
+# ============================================================
+
 def metric_card(
     label,
     value,
@@ -542,9 +648,19 @@ def metric_card(
     render_html(
         f"""
         <div class="kpi-card">
-            <div class="kpi-label">{label}</div>
-            <div class="kpi-value">{value}</div>
-            <div class="kpi-description">{description}</div>
+
+            <div class="kpi-label">
+                {safe_html(label)}
+            </div>
+
+            <div class="kpi-value">
+                {safe_html(value)}
+            </div>
+
+            <div class="kpi-description">
+                {safe_html(description)}
+            </div>
+
         </div>
         """
     )
@@ -557,8 +673,13 @@ def section_header(
 
     render_html(
         f"""
-        <div class="section-title">{title}</div>
-        <div class="section-subtitle">{subtitle}</div>
+        <div class="section-title">
+            {safe_html(title)}
+        </div>
+
+        <div class="section-subtitle">
+            {safe_html(subtitle)}
+        </div>
         """
     )
 
@@ -571,52 +692,138 @@ def make_chart_layout(
     fig.update_layout(
         height=height,
         paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)"
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(
+            l=30,
+            r=30,
+            t=60,
+            b=30
+        ),
+        font=dict(
+            color="#dce5f7"
+        )
     )
 
     return fig
 
 
-def normalize_text(value):
-
-    value = str(value)
-
-    value = value.lower()
-
-    value = re.sub(
-        r"\s+",
-        " ",
-        value
-    ).strip()
-
-    return value
-
-
 # ============================================================
-# LIVE DATA HELPERS
+# LIVE API
 # ============================================================
 
-def normalize_live_dataframe(df):
+@st.cache_data(
+    ttl=10,
+    show_spinner=False
+)
+def check_api_health():
 
-    if df is None:
+    try:
+
+        response = requests.get(
+            f"{RENDER_API}/",
+            timeout=8
+        )
+
+        return {
+            "online": True,
+            "status": response.status_code,
+            "message": "API reachable"
+        }
+
+    except requests.exceptions.Timeout:
+
+        return {
+            "online": False,
+            "status": None,
+            "message": "API timeout"
+        }
+
+    except Exception as exc:
+
+        return {
+            "online": False,
+            "status": None,
+            "message": str(exc)
+        }
+
+
+@st.cache_data(
+    ttl=5,
+    show_spinner=False
+)
+def load_live_analysis():
+
+    try:
+
+        response = requests.get(
+            f"{RENDER_API}/analysis",
+            timeout=API_TIMEOUT
+        )
+
+        response.raise_for_status()
+
+        data = response.json()
+
+        if data is None:
+            return pd.DataFrame()
+
+        if isinstance(data, dict):
+
+            if "data" in data:
+                data = data["data"]
+
+            elif "analysis" in data:
+                data = data["analysis"]
+
+            else:
+                data = [data]
+
+        if not isinstance(
+            data,
+            list
+        ):
+
+            return pd.DataFrame()
+
+        return pd.DataFrame(data)
+
+    except requests.exceptions.Timeout:
+
         return None
 
-    result = df.copy()
+    except requests.exceptions.ConnectionError:
 
-    result.columns = [
-        str(column).strip().lower()
-        for column in result.columns
-    ]
+        return None
 
-    return result
+    except Exception:
 
+        return None
+
+
+def refresh_live_data():
+
+    load_live_analysis.clear()
+    load_live_csv.clear()
+
+
+# ============================================================
+# LIVE ANALYSIS HELPERS
+# ============================================================
 
 def get_live_suspicious_mask(df):
 
-    if df is None or df.empty:
+    if (
+        df is None
+        or df.empty
+    ):
+
         return pd.Series(
-            dtype=bool,
-            index=df.index if df is not None else None
+            False,
+            index=(
+                df.index
+                if df is not None
+                else []
+            )
         )
 
     suspicious_col = first_existing_column(
@@ -646,7 +853,7 @@ def get_live_suspicious_mask(df):
             )
         )
 
-    risk_level_col = first_existing_column(
+    risk_col = first_existing_column(
         df,
         [
             "risk_level",
@@ -654,10 +861,10 @@ def get_live_suspicious_mask(df):
         ]
     )
 
-    if risk_level_col:
+    if risk_col:
 
         return (
-            df[risk_level_col]
+            df[risk_col]
             .astype(str)
             .str.upper()
             .isin(
@@ -669,22 +876,81 @@ def get_live_suspicious_mask(df):
             )
         )
 
+    score_col = first_existing_column(
+        df,
+        [
+            "risk_score",
+            "overall_risk",
+            "score"
+        ]
+    )
+
+    if score_col:
+
+        scores = safe_numeric(
+            df,
+            score_col
+        )
+
+        maximum = scores.max()
+
+        threshold = (
+            70
+            if maximum > 10
+            else 0.70
+        )
+
+        return scores >= threshold
+
     return pd.Series(
         False,
         index=df.index
     )
 
 
-def get_risk_badge_html(risk_level, suspicious):
+def infer_risk_level(
+    score
+):
+
+    try:
+
+        value = float(score)
+
+    except Exception:
+
+        return "UNKNOWN"
+
+    if value <= 1:
+        value *= 100
+
+    if value >= 80:
+        return "CRITICAL"
+
+    if value >= 60:
+        return "HIGH"
+
+    if value >= 30:
+        return "MEDIUM"
+
+    return "LOW"
+
+
+def get_risk_badge_html(
+    risk_level,
+    suspicious=False
+):
 
     level = str(
         risk_level or "UNKNOWN"
     ).upper()
 
-    if suspicious or level in [
-        "HIGH",
-        "CRITICAL"
-    ]:
+    if (
+        suspicious
+        or level in [
+            "HIGH",
+            "CRITICAL"
+        ]
+    ):
 
         return (
             '<span class="live-badge-danger">'
@@ -708,22 +974,131 @@ def get_risk_badge_html(risk_level, suspicious):
 
 
 # ============================================================
+# DATASETS
+# ============================================================
+
+scores = load_csv(
+    "trustlens_scores.csv"
+)
+
+users = load_csv(
+    "users.csv"
+)
+
+users_scored = load_csv(
+    "users_scored.csv"
+)
+
+comments = load_csv(
+    "comments.csv"
+)
+
+comments_scored = load_csv(
+    "comments_scored.csv"
+)
+
+ratings = load_csv(
+    "ratings.csv"
+)
+
+rating_analysis = load_csv(
+    "rating_analysis.csv"
+)
+
+items = load_csv(
+    "items.csv"
+)
+
+interactions = load_csv(
+    "interactions.csv"
+)
+
+coordination = load_csv(
+    "coordination_events.csv"
+)
+
+graph_features = load_csv(
+    "graph_features.csv"
+)
+
+recommendation_impact = load_csv(
+    "recommendation_impact.csv"
+)
+
+recommendation_ranking = load_csv(
+    "recommendation_ranking.csv"
+)
+
+live_posts = load_live_csv(
+    "posts.csv"
+)
+
+live_analysis = load_live_analysis()
+
+live_users = load_live_csv(
+    "users.csv"
+)
+
+
+# ============================================================
 # SIDEBAR
 # ============================================================
+
+api_status = check_api_health()
 
 with st.sidebar:
 
     render_html(
         """
-        <div style="font-size:25px;font-weight:800;margin-bottom:5px;">
+        <div style="
+            font-size:25px;
+            font-weight:800;
+            margin-bottom:5px;
+        ">
             🛡️ TRUSTLENS
         </div>
 
-        <div style="color:#7185a6;font-size:12px;margin-bottom:25px;">
+        <div style="
+            color:#7185a6;
+            font-size:12px;
+            margin-bottom:20px;
+        ">
             Social Platform Security Intelligence
         </div>
         """
     )
+
+    if api_status["online"]:
+
+        render_html(
+            """
+            <div class="success-box"
+                 style="font-size:12px;">
+                🟢 FastAPI backend online
+            </div>
+            """
+        )
+
+    else:
+
+        render_html(
+            """
+            <div class="danger-box"
+                 style="font-size:12px;">
+                🔴 FastAPI backend unavailable
+            </div>
+            """
+        )
+
+    if st.button(
+        "🔄 Refresh Live Data",
+        use_container_width=True
+    ):
+
+        refresh_live_data()
+        st.rerun()
+
+    st.markdown("---")
 
     page = st.radio(
         "COMMAND CENTER",
@@ -745,12 +1120,23 @@ with st.sidebar:
     st.markdown("---")
 
     render_html(
-        """
-        <div style="color:#617594;font-size:11px;line-height:1.6;">
-            TRUSTLENS combines behavioral analysis,
+        f"""
+        <div style="
+            color:#617594;
+            font-size:11px;
+            line-height:1.6;
+        ">
+
+            <b>Backend</b><br>
+            {safe_html(RENDER_API)}
+
+            <br><br>
+
+            TrustLens combines behavioral analysis,
             anomaly detection, coordination analysis,
             rating manipulation detection and
             recommendation-impact analysis.
+
         </div>
         """
     )
@@ -760,8 +1146,20 @@ with st.sidebar:
 # HERO
 # ============================================================
 
+hero_status_class = (
+    ""
+    if api_status["online"]
+    else "offline"
+)
+
+hero_status_text = (
+    "THREAT ANALYSIS ENGINE ACTIVE"
+    if api_status["online"]
+    else "LIVE API CONNECTION DEGRADED"
+)
+
 render_html(
-    """
+    f"""
     <div class="hero">
 
         <div class="hero-title">
@@ -775,9 +1173,11 @@ render_html(
 
         <div class="status">
 
-            <div class="status-dot"></div>
+            <div class="status-dot
+                {hero_status_class}">
+            </div>
 
-            THREAT ANALYSIS ENGINE ACTIVE
+            {safe_html(hero_status_text)}
 
         </div>
 
@@ -801,29 +1201,41 @@ if page == "Overview":
     high_risk = 0
     medium_risk = 0
     rating_attacks = 0
-    recommendation_changes = 0
+    recommendation_events = 0
+    live_posts_count = (
+        len(live_analysis)
+        if live_analysis is not None
+        else 0
+    )
 
     if scores is not None:
 
         total_users = len(scores)
 
-        risk_col = get_risk_column(scores)
+        risk_col = get_risk_column(
+            scores
+        )
 
         if risk_col:
 
-            high_risk = (
+            risk_values = (
                 scores[risk_col]
                 .astype(str)
                 .str.upper()
-                .str.contains("HIGH")
+            )
+
+            high_risk = (
+                risk_values
+                .str.contains(
+                    "HIGH|CRITICAL",
+                    regex=True
+                )
                 .sum()
             )
 
             medium_risk = (
-                scores[risk_col]
-                .astype(str)
-                .str.upper()
-                .str.contains("MEDIUM")
+                risk_values
+                .eq("MEDIUM")
                 .sum()
             )
 
@@ -835,7 +1247,7 @@ if page == "Overview":
 
     if recommendation_impact is not None:
 
-        recommendation_changes = len(
+        recommendation_events = len(
             recommendation_impact
         )
 
@@ -854,7 +1266,7 @@ if page == "Overview":
         metric_card(
             "HIGH RISK",
             f"{high_risk:,}",
-            "Critical accounts"
+            "High / critical accounts"
         )
 
     with c3:
@@ -868,23 +1280,24 @@ if page == "Overview":
     with c4:
 
         metric_card(
-            "RATING ATTACKS",
+            "RATING EVENTS",
             f"{rating_attacks:,}",
-            "Suspicious rating events"
+            "Rating records analyzed"
         )
 
     with c5:
 
         metric_card(
-            "RECOMMENDATION EVENTS",
-            f"{recommendation_changes:,}",
-            "Ranking changes analyzed"
+            "LIVE POSTS",
+            f"{live_posts_count:,}",
+            "Posts received by TrustLens"
         )
 
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # --------------------------------------------------------
+    # RISK DISTRIBUTION
+    # --------------------------------------------------------
 
     section_header(
         "Risk Distribution",
@@ -893,13 +1306,16 @@ if page == "Overview":
 
     if scores is not None:
 
-        risk_col = get_risk_column(scores)
+        risk_col = get_risk_column(
+            scores
+        )
 
         if risk_col:
 
             risk_counts = (
                 scores[risk_col]
                 .astype(str)
+                .str.upper()
                 .value_counts()
                 .reset_index()
             )
@@ -931,6 +1347,10 @@ if page == "Overview":
                 use_container_width=True
             )
 
+    # --------------------------------------------------------
+    # TOP ACCOUNTS
+    # --------------------------------------------------------
+
     section_header(
         "Most Suspicious Accounts",
         "Accounts with the highest combined threat scores."
@@ -938,17 +1358,26 @@ if page == "Overview":
 
     if scores is not None:
 
-        risk_score_col = get_risk_score_column(
+        score_col = get_risk_score_column(
             scores
         )
 
-        if risk_score_col:
+        if score_col:
 
             top = (
                 scores
+                .assign(
+                    _risk_numeric=safe_numeric(
+                        scores,
+                        score_col
+                    )
+                )
                 .sort_values(
-                    risk_score_col,
+                    "_risk_numeric",
                     ascending=False
+                )
+                .drop(
+                    columns="_risk_numeric"
                 )
                 .head(10)
             )
@@ -970,26 +1399,21 @@ elif page == "Live Social Analysis":
         "Real-time TrustLens analysis of posts submitted through the social platform."
     )
 
-    # --------------------------------------------------------
-    # REFRESH CONTROLS
-    # --------------------------------------------------------
-
-    col_refresh, col_status = st.columns(
+    c_refresh, c_status = st.columns(
         [1, 4]
     )
 
-    with col_refresh:
+    with c_refresh:
 
         if st.button(
-            "🔄 Refresh Analysis",
+            "🔄 Refresh",
             use_container_width=True
         ):
 
-            st.cache_data.clear()
-
+            refresh_live_data()
             st.rerun()
 
-    with col_status:
+    with c_status:
 
         if live_analysis is not None:
 
@@ -1006,7 +1430,7 @@ elif page == "Live Social Analysis":
             render_html(
                 """
                 <div class="warning-box">
-                    🟡 WAITING FOR LIVE ANALYSIS DATA
+                    🟡 LIVE ANALYSIS DATA UNAVAILABLE
                 </div>
                 """
             )
@@ -1016,350 +1440,258 @@ elif page == "Live Social Analysis":
         unsafe_allow_html=True
     )
 
-
-    # --------------------------------------------------------
-    # NO DATA
-    # --------------------------------------------------------
-
     if live_analysis is None:
 
-        st.info(
-            "No live TrustLens analysis records were found."
+        st.warning(
+            "TrustLens could not retrieve live analysis from the FastAPI backend."
         )
 
         st.markdown(
             """
-            ### Waiting for social platform data
+            ### Expected pipeline
 
-            Create a post from your React social-media website.
+            **React → FastAPI → TrustLens Analysis → `/analysis` → Dashboard**
 
-            The expected flow is:
-
-            **React → FastAPI → TrustLens Analysis → live_analysis.csv → this dashboard**
+            If your Render backend has just started, wait a few seconds and
+            press **Refresh**.
             """
         )
 
     else:
 
-        df = normalize_live_dataframe(
+        df = normalize_dataframe(
             live_analysis
         )
 
-
-        # ----------------------------------------------------
-        # IDENTIFY COLUMNS
-        # ----------------------------------------------------
-
-        risk_score_col = first_existing_column(
-            df,
-            [
-                "risk_score",
-                "overall_risk",
-                "risk",
-                "score"
-            ]
-        )
-
-        risk_level_col = first_existing_column(
-            df,
-            [
-                "risk_level",
-                "risk_category"
-            ]
-        )
-
-        spam_col = first_existing_column(
-            df,
-            [
-                "spam_score",
-                "spam_risk"
-            ]
-        )
-
-        duplicate_col = first_existing_column(
-            df,
-            [
-                "duplicate_score",
-                "dup_score"
-            ]
-        )
-
-        suspicious_col = first_existing_column(
-            df,
-            [
-                "suspicious",
-                "is_suspicious",
-                "flagged"
-            ]
-        )
-
-        user_col = first_existing_column(
-            df,
-            [
-                "user",
-                "user_id",
-                "userid"
-            ]
-        )
-
-        text_col = first_existing_column(
-            df,
-            [
-                "text",
-                "content",
-                "post",
-                "message"
-            ]
-        )
-
-        post_id_col = first_existing_column(
-            df,
-            [
-                "post_id",
-                "id"
-            ]
-        )
-
-
-        # ----------------------------------------------------
-        # SUSPICIOUS MASK
-        # ----------------------------------------------------
-
-        suspicious_mask = get_live_suspicious_mask(
-            df
-        )
-
-        suspicious_posts = int(
-            suspicious_mask.sum()
-        )
-
-        total_posts = len(df)
-
-        safe_posts = (
-            total_posts - suspicious_posts
-        )
-
-
-        # ----------------------------------------------------
-        # RISK VALUES
-        # ----------------------------------------------------
-
-        if risk_score_col:
-
-            risk_values = pd.to_numeric(
-                df[risk_score_col],
-                errors="coerce"
-            ).fillna(0)
-
-            average_risk = float(
-                risk_values.mean()
-            )
-
-            maximum_risk = float(
-                risk_values.max()
-            )
-
-        else:
-
-            average_risk = 0
-            maximum_risk = 0
-
-
-        # ----------------------------------------------------
-        # KPI CARDS
-        # ----------------------------------------------------
-
-        c1, c2, c3, c4, c5 = st.columns(5)
-
-        with c1:
-
-            metric_card(
-                "LIVE POSTS",
-                f"{total_posts:,}",
-                "Posts analyzed"
-            )
-
-        with c2:
-
-            metric_card(
-                "SUSPICIOUS",
-                f"{suspicious_posts:,}",
-                "Posts requiring attention"
-            )
-
-        with c3:
-
-            metric_card(
-                "SAFE",
-                f"{safe_posts:,}",
-                "No major threat detected"
-            )
-
-        with c4:
-
-            metric_card(
-                "AVERAGE RISK",
-                f"{average_risk:.2f}",
-                "Mean TrustLens risk"
-            )
-
-        with c5:
-
-            metric_card(
-                "MAX RISK",
-                f"{maximum_risk:.2f}",
-                "Highest detected risk"
-            )
-
-
-        st.markdown(
-            "<br>",
-            unsafe_allow_html=True
-        )
-
-
-        # ----------------------------------------------------
-        # RISK DISTRIBUTION
-        # ----------------------------------------------------
-
-        section_header(
-            "Live Risk Distribution",
-            "Current risk levels across posts received from the social platform."
-        )
-
-        if risk_level_col:
-
-            risk_counts = (
-                df[risk_level_col]
-                .astype(str)
-                .str.upper()
-                .value_counts()
-                .reset_index()
-            )
-
-            risk_counts.columns = [
-                "Risk Level",
-                "Posts"
-            ]
-
-            fig = px.bar(
-                risk_counts,
-                x="Risk Level",
-                y="Posts",
-                text="Posts",
-                template="plotly_dark",
-                title="Live Post Risk Levels"
-            )
-
-            fig.update_traces(
-                textposition="outside"
-            )
-
-            make_chart_layout(
-                fig,
-                420
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-        else:
+        if df.empty:
 
             st.info(
-                "risk_level column was not found in live_analysis.csv."
+                "The API is online but no analysis records exist yet."
             )
 
+        else:
 
-        # ----------------------------------------------------
-        # RISK SCORE DISTRIBUTION
-        # ----------------------------------------------------
+            risk_score_col = first_existing_column(
+                df,
+                [
+                    "risk_score",
+                    "overall_risk",
+                    "risk",
+                    "score"
+                ]
+            )
 
-        if risk_score_col:
+            risk_level_col = first_existing_column(
+                df,
+                [
+                    "risk_level",
+                    "risk_category"
+                ]
+            )
+
+            spam_col = first_existing_column(
+                df,
+                [
+                    "spam_score",
+                    "spam_risk"
+                ]
+            )
+
+            duplicate_col = first_existing_column(
+                df,
+                [
+                    "duplicate_score",
+                    "dup_score"
+                ]
+            )
+
+            suspicious_col = first_existing_column(
+                df,
+                [
+                    "suspicious",
+                    "is_suspicious",
+                    "flagged"
+                ]
+            )
+
+            user_col = first_existing_column(
+                df,
+                [
+                    "user",
+                    "user_id",
+                    "userid",
+                    "username"
+                ]
+            )
+
+            text_col = first_existing_column(
+                df,
+                [
+                    "text",
+                    "content",
+                    "post",
+                    "message",
+                    "caption"
+                ]
+            )
+
+            post_id_col = first_existing_column(
+                df,
+                [
+                    "post_id",
+                    "id"
+                ]
+            )
+
+            suspicious_mask = (
+                get_live_suspicious_mask(df)
+            )
+
+            suspicious_count = int(
+                suspicious_mask.sum()
+            )
+
+            total_posts = len(df)
+
+            safe_count = max(
+                0,
+                total_posts - suspicious_count
+            )
+
+            if risk_score_col:
+
+                risk_values = safe_numeric(
+                    df,
+                    risk_score_col
+                )
+
+                average_risk = float(
+                    risk_values.mean()
+                )
+
+                maximum_risk = float(
+                    risk_values.max()
+                )
+
+            else:
+
+                average_risk = 0
+                maximum_risk = 0
+
+            # ------------------------------------------------
+            # KPIs
+            # ------------------------------------------------
+
+            c1, c2, c3, c4, c5 = st.columns(5)
+
+            with c1:
+
+                metric_card(
+                    "LIVE POSTS",
+                    f"{total_posts:,}",
+                    "Posts analyzed"
+                )
+
+            with c2:
+
+                metric_card(
+                    "SUSPICIOUS",
+                    f"{suspicious_count:,}",
+                    "Posts requiring attention"
+                )
+
+            with c3:
+
+                metric_card(
+                    "SAFE",
+                    f"{safe_count:,}",
+                    "No major threat detected"
+                )
+
+            with c4:
+
+                metric_card(
+                    "AVERAGE RISK",
+                    f"{average_risk:.2f}",
+                    "Mean TrustLens risk"
+                )
+
+            with c5:
+
+                metric_card(
+                    "MAX RISK",
+                    f"{maximum_risk:.2f}",
+                    "Highest detected risk"
+                )
+
+            st.markdown(
+                "<br>",
+                unsafe_allow_html=True
+            )
+
+            # ------------------------------------------------
+            # RISK LEVEL
+            # ------------------------------------------------
 
             section_header(
-                "Risk Score Distribution",
-                "Distribution of TrustLens risk scores across live posts."
+                "Live Risk Distribution",
+                "Current risk levels across posts received from the social platform."
             )
 
-            chart_df = df.copy()
+            if risk_level_col:
 
-            chart_df[risk_score_col] = pd.to_numeric(
-                chart_df[risk_score_col],
-                errors="coerce"
-            ).fillna(0)
-
-            fig = px.histogram(
-                chart_df,
-                x=risk_score_col,
-                nbins=20,
-                template="plotly_dark",
-                title="Live Risk Score Distribution"
-            )
-
-            make_chart_layout(
-                fig,
-                420
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-
-        # ----------------------------------------------------
-        # SPAM / DUPLICATE ANALYSIS
-        # ----------------------------------------------------
-
-        if spam_col or duplicate_col:
-
-            section_header(
-                "Detection Signals",
-                "Signals generated by the TrustLens content-analysis engine."
-            )
-
-            signal_data = {}
-
-            if spam_col:
-
-                signal_data["Spam Score"] = (
-                    pd.to_numeric(
-                        df[spam_col],
-                        errors="coerce"
-                    ).fillna(0)
+                risk_counts = (
+                    df[risk_level_col]
+                    .astype(str)
+                    .str.upper()
+                    .value_counts()
+                    .reset_index()
                 )
 
-            if duplicate_col:
+                risk_counts.columns = [
+                    "Risk Level",
+                    "Posts"
+                ]
 
-                signal_data["Duplicate Score"] = (
-                    pd.to_numeric(
-                        df[duplicate_col],
-                        errors="coerce"
-                    ).fillna(0)
+            elif risk_score_col:
+
+                risk_counts = pd.DataFrame(
+                    {
+                        "Risk Level": [
+                            infer_risk_level(x)
+                            for x in risk_values
+                        ]
+                    }
                 )
 
-            if signal_data:
-
-                signal_df = pd.DataFrame(
-                    signal_data
+                risk_counts = (
+                    risk_counts
+                    ["Risk Level"]
+                    .value_counts()
+                    .reset_index()
                 )
 
-                fig = px.scatter(
-                    signal_df,
-                    x=(
-                        "Spam Score"
-                        if "Spam Score" in signal_df.columns
-                        else signal_df.columns[0]
-                    ),
-                    y=(
-                        "Duplicate Score"
-                        if "Duplicate Score" in signal_df.columns
-                        else signal_df.columns[0]
-                    ),
-                    template="plotly_dark",
-                    title="Spam vs Duplicate Signals"
+                risk_counts.columns = [
+                    "Risk Level",
+                    "Posts"
+                ]
+
+            else:
+
+                risk_counts = None
+
+            if risk_counts is not None:
+
+                fig = px.bar(
+                    risk_counts,
+                    x="Risk Level",
+                    y="Posts",
+                    text="Posts",
+                    template="plotly_dark"
+                )
+
+                fig.update_traces(
+                    textposition="outside"
                 )
 
                 make_chart_layout(
@@ -1372,228 +1704,319 @@ elif page == "Live Social Analysis":
                     use_container_width=True
                 )
 
+            # ------------------------------------------------
+            # SCORE DISTRIBUTION
+            # ------------------------------------------------
 
-        # ----------------------------------------------------
-        # RECENT RESULTS
-        # ----------------------------------------------------
+            if risk_score_col:
 
-        section_header(
-            "Recent TrustLens Results",
-            "Latest posts analyzed by the TrustLens detection engine."
-        )
-
-
-        display_columns = []
-
-        for column in [
-            post_id_col,
-            user_col,
-            text_col,
-            spam_col,
-            duplicate_col,
-            risk_score_col,
-            risk_level_col,
-            suspicious_col
-        ]:
-
-            if (
-                column
-                and column in df.columns
-                and column not in display_columns
-            ):
-
-                display_columns.append(
-                    column
+                section_header(
+                    "Risk Score Distribution",
+                    "Distribution of TrustLens risk scores across live posts."
                 )
 
+                chart_df = pd.DataFrame(
+                    {
+                        "Risk Score":
+                            risk_values
+                    }
+                )
 
-        if display_columns:
+                fig = px.histogram(
+                    chart_df,
+                    x="Risk Score",
+                    nbins=20,
+                    template="plotly_dark"
+                )
 
-            recent = df[
-                display_columns
-            ].copy()
+                make_chart_layout(
+                    fig,
+                    420
+                )
 
-            # Newest records are normally appended last.
-            recent = recent.iloc[::-1]
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
 
-            display_dataframe(
-                recent.head(100),
-                600
-            )
+            # ------------------------------------------------
+            # SIGNAL ANALYSIS
+            # ------------------------------------------------
 
-        else:
+            if spam_col or duplicate_col:
 
-            display_dataframe(
-                df.head(100),
-                600
-            )
+                section_header(
+                    "Detection Signals",
+                    "Signals generated by the TrustLens content-analysis engine."
+                )
 
+                signal_frames = []
 
-        # ----------------------------------------------------
-        # SUSPICIOUS POSTS
-        # ----------------------------------------------------
+                if spam_col:
 
-        if suspicious_posts > 0:
+                    signal_frames.append(
+                        pd.DataFrame(
+                            {
+                                "Signal": "Spam Score",
+                                "Value":
+                                    safe_numeric(
+                                        df,
+                                        spam_col
+                                    )
+                            }
+                        )
+                    )
+
+                if duplicate_col:
+
+                    signal_frames.append(
+                        pd.DataFrame(
+                            {
+                                "Signal":
+                                    "Duplicate Score",
+                                "Value":
+                                    safe_numeric(
+                                        df,
+                                        duplicate_col
+                                    )
+                            }
+                        )
+                    )
+
+                signal_df = pd.concat(
+                    signal_frames,
+                    ignore_index=True
+                )
+
+                fig = px.box(
+                    signal_df,
+                    x="Signal",
+                    y="Value",
+                    template="plotly_dark"
+                )
+
+                make_chart_layout(
+                    fig,
+                    420
+                )
+
+                st.plotly_chart(
+                    fig,
+                    use_container_width=True
+                )
+
+            # ------------------------------------------------
+            # RECENT RESULTS
+            # ------------------------------------------------
 
             section_header(
-                "⚠️ Suspicious Posts",
-                "Posts flagged by the TrustLens detection engine."
+                "Recent TrustLens Results",
+                "Latest posts analyzed by the TrustLens detection engine."
             )
 
-            suspicious_df = df[
-                suspicious_mask
-            ].copy()
+            display_columns = []
 
-            suspicious_df = (
-                suspicious_df
-                .iloc[::-1]
-            )
+            for column in [
+                post_id_col,
+                user_col,
+                text_col,
+                spam_col,
+                duplicate_col,
+                risk_score_col,
+                risk_level_col,
+                suspicious_col
+            ]:
 
-            display_dataframe(
-                suspicious_df.head(100),
-                550
-            )
+                if (
+                    column
+                    and column in df.columns
+                    and column not in display_columns
+                ):
 
-        else:
+                    display_columns.append(
+                        column
+                    )
 
-            render_html(
-                """
-                <div class="success-box">
-                    ✅ No suspicious live posts detected.
-                </div>
-                """
-            )
+            recent = df.iloc[::-1].head(100)
 
+            if display_columns:
 
-        # ----------------------------------------------------
-        # LIVE POST CARDS
-        # ----------------------------------------------------
+                display_dataframe(
+                    recent[
+                        display_columns
+                    ],
+                    600
+                )
 
-        section_header(
-            "Post-Level TrustLens Analysis",
-            "Detailed analysis of individual posts."
-        )
+            else:
 
-        recent_rows = (
-            df.iloc[::-1]
-            .head(20)
-        )
+                display_dataframe(
+                    recent,
+                    600
+                )
 
-        for _, row in recent_rows.iterrows():
+            # ------------------------------------------------
+            # SUSPICIOUS
+            # ------------------------------------------------
 
-            user_value = (
-                row[user_col]
-                if user_col
-                else "Unknown User"
-            )
+            if suspicious_count:
 
-            text_value = (
-                row[text_col]
-                if text_col
-                else "No post text available"
-            )
+                section_header(
+                    "⚠️ Suspicious Posts",
+                    "Posts flagged by the TrustLens detection engine."
+                )
 
-            spam_value = (
-                row[spam_col]
-                if spam_col
-                else 0
-            )
+                display_dataframe(
+                    df.loc[
+                        suspicious_mask
+                    ].iloc[::-1].head(100),
+                    550
+                )
 
-            duplicate_value = (
-                row[duplicate_col]
-                if duplicate_col
-                else 0
-            )
+            else:
 
-            risk_value = (
-                row[risk_score_col]
-                if risk_score_col
-                else 0
-            )
-
-            level_value = (
-                row[risk_level_col]
-                if risk_level_col
-                else "UNKNOWN"
-            )
-
-            row_suspicious = bool(
-                suspicious_mask.loc[row.name]
-            )
-
-            badge = get_risk_badge_html(
-                level_value,
-                row_suspicious
-            )
-
-            render_html(
-                f"""
-                <div class="live-post-card">
-
-                    <div class="live-post-user">
-                        👤 {user_value}
+                render_html(
+                    """
+                    <div class="success-box">
+                        ✅ No suspicious live posts detected.
                     </div>
+                    """
+                )
 
-                    <div class="live-post-text">
-                        {text_value}
-                    </div>
+            # ------------------------------------------------
+            # POST CARDS
+            # ------------------------------------------------
 
-                    <div style="margin-bottom:15px;">
-                        {badge}
-                    </div>
+            section_header(
+                "Post-Level TrustLens Analysis",
+                "Detailed analysis of individual posts."
+            )
 
-                    <div style="
-                        display:grid;
-                        grid-template-columns:
-                        repeat(4, 1fr);
-                        gap:12px;
-                    ">
+            for _, row in (
+                df.iloc[::-1]
+                .head(20)
+                .iterrows()
+            ):
 
-                        <div class="info-card">
-                            <div class="info-title">
-                                Spam Score
-                            </div>
+                user_value = (
+                    row[user_col]
+                    if user_col
+                    else "Unknown User"
+                )
 
-                            <div class="info-text">
-                                {spam_value}
-                            </div>
+                text_value = (
+                    row[text_col]
+                    if text_col
+                    else "No post text available"
+                )
+
+                spam_value = (
+                    row[spam_col]
+                    if spam_col
+                    else 0
+                )
+
+                duplicate_value = (
+                    row[duplicate_col]
+                    if duplicate_col
+                    else 0
+                )
+
+                risk_value = (
+                    row[risk_score_col]
+                    if risk_score_col
+                    else 0
+                )
+
+                if risk_level_col:
+
+                    level_value = (
+                        row[risk_level_col]
+                    )
+
+                else:
+
+                    level_value = infer_risk_level(
+                        risk_value
+                    )
+
+                row_suspicious = bool(
+                    suspicious_mask.loc[
+                        row.name
+                    ]
+                )
+
+                badge = get_risk_badge_html(
+                    level_value,
+                    row_suspicious
+                )
+
+                render_html(
+                    f"""
+                    <div class="live-post-card">
+
+                        <div class="live-post-user">
+                            👤 {safe_html(user_value)}
                         </div>
 
-                        <div class="info-card">
-                            <div class="info-title">
-                                Duplicate Score
-                            </div>
-
-                            <div class="info-text">
-                                {duplicate_value}
-                            </div>
+                        <div class="live-post-text">
+                            {safe_html(text_value)}
                         </div>
 
-                        <div class="info-card">
-                            <div class="info-title">
-                                Risk Score
-                            </div>
-
-                            <div class="info-text">
-                                {risk_value}
-                            </div>
+                        <div style="
+                            margin-bottom:15px;
+                        ">
+                            {badge}
                         </div>
 
-                        <div class="info-card">
-                            <div class="info-title">
-                                Risk Level
+                        <div style="
+                            display:grid;
+                            grid-template-columns:
+                            repeat(4,1fr);
+                            gap:12px;
+                        ">
+
+                            <div class="info-card">
+                                <div class="info-title">
+                                    Spam Score
+                                </div>
+                                <div class="info-text">
+                                    {safe_html(spam_value)}
+                                </div>
                             </div>
 
-                            <div class="info-text">
-                                {level_value}
+                            <div class="info-card">
+                                <div class="info-title">
+                                    Duplicate Score
+                                </div>
+                                <div class="info-text">
+                                    {safe_html(duplicate_value)}
+                                </div>
                             </div>
+
+                            <div class="info-card">
+                                <div class="info-title">
+                                    Risk Score
+                                </div>
+                                <div class="info-text">
+                                    {safe_html(risk_value)}
+                                </div>
+                            </div>
+
+                            <div class="info-card">
+                                <div class="info-title">
+                                    Risk Level
+                                </div>
+                                <div class="info-text">
+                                    {safe_html(level_value)}
+                                </div>
+                            </div>
+
                         </div>
 
                     </div>
-
-                </div>
-                """
-            )
+                    """
+                )
 
 
 # ============================================================
@@ -1619,15 +2042,18 @@ elif page == "Risk Intelligence":
             scores
         )
 
+        risk_values = safe_numeric(
+            scores,
+            risk_score_col
+        )
+
         c1, c2, c3 = st.columns(3)
 
         with c1:
 
             metric_card(
                 "AVERAGE RISK",
-                f"{safe_numeric(scores, risk_score_col).mean():.2f}"
-                if risk_score_col
-                else "N/A",
+                f"{risk_values.mean():.2f}",
                 "Mean platform risk"
             )
 
@@ -1635,9 +2061,7 @@ elif page == "Risk Intelligence":
 
             metric_card(
                 "MAX RISK",
-                f"{safe_numeric(scores, risk_score_col).max():.2f}"
-                if risk_score_col
-                else "N/A",
+                f"{risk_values.max():.2f}",
                 "Highest detected risk"
             )
 
@@ -1651,21 +2075,18 @@ elif page == "Risk Intelligence":
 
         if risk_score_col:
 
-            chart_data = scores.copy()
-
-            chart_data[
-                risk_score_col
-            ] = pd.to_numeric(
-                chart_data[risk_score_col],
-                errors="coerce"
-            ).fillna(0)
+            chart_df = pd.DataFrame(
+                {
+                    "Risk Score":
+                        risk_values
+                }
+            )
 
             fig = px.histogram(
-                chart_data,
-                x=risk_score_col,
+                chart_df,
+                x="Risk Score",
                 nbins=25,
-                template="plotly_dark",
-                title="Risk Score Distribution"
+                template="plotly_dark"
             )
 
             make_chart_layout(
@@ -1698,15 +2119,26 @@ elif page == "Risk Intelligence":
                 if col in scores.columns
             ]
 
-            table = scores.sort_values(
-                risk_score_col,
-                ascending=False
+            table = (
+                scores
+                .assign(
+                    _sort=risk_values
+                )
+                .sort_values(
+                    "_sort",
+                    ascending=False
+                )
+                .drop(
+                    columns="_sort"
+                )
             )
 
             if display_cols:
 
                 display_dataframe(
-                    table[display_cols].head(50),
+                    table[
+                        display_cols
+                    ].head(50),
                     550
                 )
 
@@ -1785,16 +2217,16 @@ elif page == "Account Detection":
                     "Score < 30"
                 )
 
-            chart = pd.DataFrame({
-                "Bot Score": bot_values
-            })
-
             fig = px.histogram(
-                chart,
+                pd.DataFrame(
+                    {
+                        "Bot Score":
+                            bot_values
+                    }
+                ),
                 x="Bot Score",
                 nbins=20,
-                template="plotly_dark",
-                title="Bot Score Distribution"
+                template="plotly_dark"
             )
 
             make_chart_layout(
@@ -1807,15 +2239,31 @@ elif page == "Account Detection":
                 use_container_width=True
             )
 
-        display_dataframe(
-            df.sort_values(
-                bot_col,
-                ascending=False
-            ).head(50)
-            if bot_col
-            else df.head(50),
-            550
-        )
+            display_dataframe(
+                df.assign(
+                    _bot_sort=bot_values
+                )
+                .sort_values(
+                    "_bot_sort",
+                    ascending=False
+                )
+                .drop(
+                    columns="_bot_sort"
+                )
+                .head(50),
+                550
+            )
+
+        else:
+
+            st.warning(
+                "No bot-score column was found in the available account dataset."
+            )
+
+            display_dataframe(
+                df.head(50),
+                550
+            )
 
 
 # ============================================================
@@ -1873,9 +2321,7 @@ elif page == "Comment Analysis":
 
             metric_card(
                 "SPAM SIGNAL",
-                f"{safe_numeric(df, spam_col).mean():.2f}"
-                if spam_col
-                else "N/A",
+                f"{safe_numeric(df, spam_col).mean():.2f}",
                 "Average spam score"
             )
 
@@ -1883,34 +2329,32 @@ elif page == "Comment Analysis":
 
             metric_card(
                 "DUPLICATE SIGNAL",
-                f"{safe_numeric(df, duplicate_col).mean():.2f}"
-                if duplicate_col
-                else "N/A",
+                f"{safe_numeric(df, duplicate_col).mean():.2f}",
                 "Average duplicate score"
             )
 
         if spam_col and duplicate_col:
 
-            plot_df = pd.DataFrame({
-                "Spam Score":
-                    safe_numeric(
-                        df,
-                        spam_col
-                    ),
-
-                "Duplicate Score":
-                    safe_numeric(
-                        df,
-                        duplicate_col
-                    )
-            })
+            plot_df = pd.DataFrame(
+                {
+                    "Spam Score":
+                        safe_numeric(
+                            df,
+                            spam_col
+                        ),
+                    "Duplicate Score":
+                        safe_numeric(
+                            df,
+                            duplicate_col
+                        )
+                }
+            )
 
             fig = px.scatter(
                 plot_df,
                 x="Spam Score",
                 y="Duplicate Score",
-                template="plotly_dark",
-                title="Spam vs Duplicate Behavior"
+                template="plotly_dark"
             )
 
             make_chart_layout(
@@ -1959,6 +2403,11 @@ elif page == "Rating Attacks":
             ]
         )
 
+        attack_values = safe_numeric(
+            df,
+            attack_col
+        )
+
         c1, c2, c3 = st.columns(3)
 
         with c1:
@@ -1973,9 +2422,7 @@ elif page == "Rating Attacks":
 
             metric_card(
                 "AVG ATTACK SCORE",
-                f"{safe_numeric(df, attack_col).mean():.2f}"
-                if attack_col
-                else "N/A",
+                f"{attack_values.mean():.2f}",
                 "Average manipulation signal"
             )
 
@@ -1983,29 +2430,22 @@ elif page == "Rating Attacks":
 
             metric_card(
                 "HIGH ATTACK SIGNAL",
-                f"{(safe_numeric(df, attack_col) >= 70).sum():,}"
-                if attack_col
-                else "N/A",
+                f"{(attack_values >= 70).sum():,}",
                 "Score ≥ 70"
             )
 
         if attack_col:
 
-            plot_df = df.copy()
-
-            plot_df[
-                attack_col
-            ] = pd.to_numeric(
-                plot_df[attack_col],
-                errors="coerce"
-            ).fillna(0)
-
             fig = px.histogram(
-                plot_df,
-                x=attack_col,
+                pd.DataFrame(
+                    {
+                        "Attack Score":
+                            attack_values
+                    }
+                ),
+                x="Attack Score",
                 nbins=20,
-                template="plotly_dark",
-                title="Rating Attack Score Distribution"
+                template="plotly_dark"
             )
 
             make_chart_layout(
@@ -2018,15 +2458,27 @@ elif page == "Rating Attacks":
                 use_container_width=True
             )
 
-        display_dataframe(
-            df.sort_values(
-                attack_col,
-                ascending=False
-            ).head(100)
-            if attack_col
-            else df.head(100),
-            550
-        )
+            display_dataframe(
+                df.assign(
+                    _attack_sort=attack_values
+                )
+                .sort_values(
+                    "_attack_sort",
+                    ascending=False
+                )
+                .drop(
+                    columns="_attack_sort"
+                )
+                .head(100),
+                550
+            )
+
+        else:
+
+            display_dataframe(
+                df.head(100),
+                550
+            )
 
 
 # ============================================================
@@ -2050,27 +2502,31 @@ elif page == "Coordination":
 
         if (
             scores is not None
-            and "coordination_score" in scores.columns
+            and "coordination_score"
+            in scores.columns
         ):
 
             st.info(
                 "Showing coordination scores from the TrustLens scoring dataset."
             )
 
-            coord_df = scores[
-                [
-                    c
-                    for c in [
-                        "user_id",
-                        "coordination_score",
-                        "risk_score",
-                        "risk_level"
+            coord_df = (
+                scores[
+                    [
+                        c
+                        for c in [
+                            "user_id",
+                            "coordination_score",
+                            "risk_score",
+                            "risk_level"
+                        ]
+                        if c in scores.columns
                     ]
-                    if c in scores.columns
                 ]
-            ].sort_values(
-                "coordination_score",
-                ascending=False
+                .sort_values(
+                    "coordination_score",
+                    ascending=False
+                )
             )
 
             display_dataframe(
@@ -2129,6 +2585,16 @@ elif page == "Recommendation Impact":
             ]
         )
 
+        rank_values = safe_numeric(
+            df,
+            rank_change_col
+        )
+
+        score_values = safe_numeric(
+            df,
+            score_change_col
+        )
+
         c1, c2, c3 = st.columns(3)
 
         with c1:
@@ -2141,49 +2607,19 @@ elif page == "Recommendation Impact":
 
         with c2:
 
-            if rank_change_col:
-
-                rank_values = safe_numeric(
-                    df,
-                    rank_change_col
-                )
-
-                metric_card(
-                    "LARGEST RANK SHIFT",
-                    f"{rank_values.abs().max():.0f}",
-                    "Absolute rank change"
-                )
-
-            else:
-
-                metric_card(
-                    "RANK SHIFT",
-                    "N/A",
-                    "Not available"
-                )
+            metric_card(
+                "LARGEST RANK SHIFT",
+                f"{rank_values.abs().max():.0f}",
+                "Absolute rank change"
+            )
 
         with c3:
 
-            if score_change_col:
-
-                score_values = safe_numeric(
-                    df,
-                    score_change_col
-                )
-
-                metric_card(
-                    "MAX SCORE CHANGE",
-                    f"{score_values.abs().max():.3f}",
-                    "Recommendation score"
-                )
-
-            else:
-
-                metric_card(
-                    "SCORE CHANGE",
-                    "N/A",
-                    "Not available"
-                )
+            metric_card(
+                "MAX SCORE CHANGE",
+                f"{score_values.abs().max():.3f}",
+                "Recommendation score"
+            )
 
         if rank_change_col:
 
@@ -2191,10 +2627,21 @@ elif page == "Recommendation Impact":
 
             plot_df[
                 rank_change_col
-            ] = pd.to_numeric(
-                plot_df[rank_change_col],
-                errors="coerce"
-            ).fillna(0)
+            ] = rank_values
+
+            if score_change_col:
+
+                plot_df[
+                    score_change_col
+                ] = score_values
+
+            else:
+
+                plot_df[
+                    "_score"
+                ] = rank_values
+
+                score_change_col = "_score"
 
             plot_df["Direction"] = np.where(
                 plot_df[rank_change_col] > 0,
@@ -2209,19 +2656,9 @@ elif page == "Recommendation Impact":
             fig = px.scatter(
                 plot_df,
                 x=rank_change_col,
-                y=(
-                    score_change_col
-                    if score_change_col
-                    else rank_change_col
-                ),
-                hover_name=(
-                    "item_id"
-                    if "item_id" in plot_df.columns
-                    else None
-                ),
+                y=score_change_col,
                 color="Direction",
-                template="plotly_dark",
-                title="Recommendation Ranking Impact"
+                template="plotly_dark"
             )
 
             make_chart_layout(
@@ -2234,23 +2671,17 @@ elif page == "Recommendation Impact":
                 use_container_width=True
             )
 
-            largest = df.copy()
-
-            largest["_abs_change"] = (
-                pd.to_numeric(
-                    largest[rank_change_col],
-                    errors="coerce"
-                ).abs()
-            )
-
             largest = (
-                largest
+                df.assign(
+                    _abs_change=
+                        rank_values.abs()
+                )
                 .sort_values(
                     "_abs_change",
                     ascending=False
                 )
                 .drop(
-                    columns=["_abs_change"]
+                    columns="_abs_change"
                 )
                 .head(30)
             )
@@ -2318,7 +2749,7 @@ elif page == "Network Intelligence":
 
         if degree_col:
 
-            numeric_degree = safe_numeric(
+            degree_values = safe_numeric(
                 df,
                 degree_col
             )
@@ -2337,7 +2768,7 @@ elif page == "Network Intelligence":
 
                 metric_card(
                     "AVG CONNECTIVITY",
-                    f"{numeric_degree.mean():.2f}",
+                    f"{degree_values.mean():.2f}",
                     "Mean connections"
                 )
 
@@ -2345,7 +2776,7 @@ elif page == "Network Intelligence":
 
                 metric_card(
                     "MAX CONNECTIVITY",
-                    f"{numeric_degree.max():.0f}",
+                    f"{degree_values.max():.0f}",
                     "Highest connectivity"
                 )
 
@@ -2355,18 +2786,27 @@ elif page == "Network Intelligence":
 
             if user_col:
 
-                top = df.nlargest(
-                    25,
-                    degree_col
+                top = (
+                    df.assign(
+                        _degree=degree_values
+                    )
+                    .sort_values(
+                        "_degree",
+                        ascending=False
+                    )
+                    .head(25)
                 )
 
                 fig = px.bar(
                     top,
-                    x=degree_col,
+                    x="_degree",
                     y=user_col,
                     orientation="h",
-                    template="plotly_dark",
-                    title="Most Connected Accounts"
+                    template="plotly_dark"
+                )
+
+                fig.update_yaxes(
+                    categoryorder="total ascending"
                 )
 
                 make_chart_layout(
@@ -2406,17 +2846,18 @@ elif page == "Controlled Attack Lab":
 
             <div class="attack-card-text">
 
-                Configure an attack, generate synthetic records inside the local
-                TrustLens dataset, then send the generated data through the
-                existing detection scripts. Nothing is posted to a real platform.
+                Configure an attack, generate synthetic records
+                inside the local TrustLens dataset, then send
+                the generated data through the existing detection
+                scripts.
+
+                Nothing is posted to a real platform.
 
             </div>
 
         </div>
         """
     )
-
-    ensure_attack_dirs()
 
     tab_bot, tab_comment, tab_rating = st.tabs(
         [
@@ -2425,7 +2866,6 @@ elif page == "Controlled Attack Lab":
             "⭐ Rating Attack"
         ]
     )
-
 
     # ========================================================
     # BOT ATTACK
@@ -2439,18 +2879,17 @@ elif page == "Controlled Attack Lab":
 
         bot_count = st.slider(
             "Number of synthetic bots",
-            min_value=1,
-            max_value=200,
-            value=20,
-            step=1,
+            1,
+            200,
+            20,
             key="bot_count"
         )
 
         bot_activity = st.slider(
             "Bot activity intensity",
-            min_value=1,
-            max_value=10,
-            value=7,
+            1,
+            10,
+            7,
             key="bot_activity"
         )
 
@@ -2464,19 +2903,16 @@ elif page == "Controlled Attack Lab":
             key="bot_mode"
         )
 
-        run_bot_detection = st.checkbox(
-            "Run existing bot detector after simulation",
-            value=True,
-            key="run_bot_detection"
+        run_detector = st.checkbox(
+            "Run existing bot detector",
+            True,
+            key="run_bot_detector"
         )
 
         if st.button(
             "🚨 Simulate Bot Attack",
-            use_container_width=True,
-            key="simulate_bot"
+            use_container_width=True
         ):
-
-            ensure_attack_dirs()
 
             if users is None:
 
@@ -2500,54 +2936,48 @@ elif page == "Controlled Attack Lab":
                 if user_col is None:
 
                     st.error(
-                        "Could not find user_id column in users.csv."
+                        "Could not find user_id column."
                     )
 
                 else:
 
-                    new_users = []
-
-                    start = 1
+                    rows = []
 
                     for i in range(
-                        start,
-                        start + bot_count
+                        1,
+                        bot_count + 1
                     ):
-
-                        uid = f"BOT_{i:03d}"
 
                         row = {
                             col: ""
                             for col in base.columns
                         }
 
-                        row[user_col] = uid
+                        row[user_col] = (
+                            f"BOT_{i:03d}"
+                        )
 
                         for col in base.columns:
 
-                            lower = col.lower()
+                            low = col.lower()
 
-                            if "bot" in lower:
-
+                            if "bot" in low:
                                 row[col] = 1
 
-                            elif "activity" in lower:
-
+                            elif "activity" in low:
                                 row[col] = bot_activity
 
-                            elif "real" in lower:
-
+                            elif "real" in low:
                                 row[col] = False
 
-                        new_users.append(
-                            row
-                        )
+                        rows.append(row)
 
                     injected = pd.DataFrame(
-                        new_users
+                        rows,
+                        columns=base.columns
                     )
 
-                    users_attacked = pd.concat(
+                    result_df = pd.concat(
                         [
                             base,
                             injected
@@ -2555,73 +2985,67 @@ elif page == "Controlled Attack Lab":
                         ignore_index=True
                     )
 
-                    users_attacked.to_csv(
-                        ATTACK_DATA_DIR
-                        / "users_attacked.csv",
+                    result_df.to_csv(
+                        ATTACK_DATA_DIR /
+                        "users_attacked.csv",
                         index=False
                     )
 
                     injected.to_csv(
-                        ATTACK_DATA_DIR
-                        / "injected_bots.csv",
+                        ATTACK_DATA_DIR /
+                        "injected_bots.csv",
                         index=False
                     )
 
                     manifest = pd.DataFrame(
-                        [{
-                            "attack_id":
-                                datetime.now()
-                                .strftime(
-                                    "%Y%m%d_%H%M%S"
-                                ),
+                        [
+                            {
+                                "attack_id":
+                                    datetime.now()
+                                    .strftime(
+                                        "%Y%m%d_%H%M%S"
+                                    ),
+                                "attack_type":
+                                    "BOT",
+                                "bot_count":
+                                    bot_count,
+                                "activity_intensity":
+                                    bot_activity,
+                                "behavior":
+                                    bot_mode,
+                                "created_at":
+                                    datetime.now()
+                                    .isoformat()
+                            }
+                        ]
+                    )
 
-                            "attack_type":
-                                "BOT",
-
-                            "bot_count":
-                                bot_count,
-
-                            "activity_intensity":
-                                bot_activity,
-
-                            "behavior":
-                                bot_mode,
-
-                            "created_at":
-                                datetime.now().isoformat()
-                        }]
+                    manifest_path = (
+                        ATTACK_DATA_DIR /
+                        "attack_manifest.csv"
                     )
 
                     manifest.to_csv(
-                        ATTACK_DATA_DIR
-                        / "attack_manifest.csv",
-
+                        manifest_path,
                         mode="a",
-
-                        header=not (
-                            ATTACK_DATA_DIR
-                            / "attack_manifest.csv"
-                        ).exists(),
-
+                        header=not manifest_path.exists(),
                         index=False
                     )
 
                     st.success(
-                        f"Created {bot_count} synthetic bots successfully."
+                        f"Created {bot_count} synthetic bots."
                     )
 
                     c1, c2, c3 = st.columns(3)
 
                     with c1:
-
                         metric_card(
                             "ORIGINAL USERS",
                             f"{len(base):,}",
-                            "Before simulation"
+                            "Before attack"
                         )
 
                     with c2:
-
                         metric_card(
                             "BOTS INJECTED",
                             f"{bot_count:,}",
@@ -2629,11 +3053,10 @@ elif page == "Controlled Attack Lab":
                         )
 
                     with c3:
-
                         metric_card(
                             "FINAL USERS",
-                            f"{len(users_attacked):,}",
-                            "After simulation"
+                            f"{len(result_df):,}",
+                            "After attack"
                         )
 
                     display_dataframe(
@@ -2641,62 +3064,25 @@ elif page == "Controlled Attack Lab":
                         350
                     )
 
-                    if run_bot_detection:
+                    if run_detector:
 
                         detector = (
-                            BASE_DIR
-                            / "src"
-                            / "detect_bot_attack.py"
+                            BASE_DIR /
+                            "src" /
+                            "detect_bot_attack.py"
                         )
 
                         if detector.exists():
 
-                            with st.spinner(
-                                "Running bot detector..."
-                            ):
-
-                                result = subprocess.run(
-                                    [
-                                        sys.executable,
-                                        str(detector)
-                                    ],
-                                    cwd=str(BASE_DIR),
-                                    capture_output=True,
-                                    text=True
-                                )
-
-                            if result.returncode == 0:
-
-                                st.success(
-                                    "Bot detection completed."
-                                )
-
-                                if result.stdout:
-
-                                    st.code(
-                                        result.stdout[-12000:],
-                                        language="text"
-                                    )
-
-                            else:
-
-                                st.error(
-                                    "Bot detector returned an error."
-                                )
-
-                                if result.stderr:
-
-                                    st.code(
-                                        result.stderr[-12000:],
-                                        language="text"
-                                    )
+                            run_detector_process(
+                                detector,
+                                "Bot detector"
+                            )
 
                         else:
 
                             st.info(
-                                "Simulation completed. "
-                                "detect_bot_attack.py was not found in src/, "
-                                "so detection was not launched automatically."
+                                "Bot detector script was not found."
                             )
 
 
@@ -2712,10 +3098,9 @@ elif page == "Controlled Attack Lab":
 
         comment_count = st.slider(
             "Number of fake comments",
-            min_value=1,
-            max_value=500,
-            value=100,
-            step=1,
+            1,
+            500,
+            100,
             key="comment_count"
         )
 
@@ -2732,29 +3117,27 @@ elif page == "Controlled Attack Lab":
 
         comment_text = st.text_input(
             "Attack comment",
-            value="Amazing product! Highly recommended!",
+            "Amazing product! Highly recommended!",
             key="comment_text"
         )
 
         target_count = st.slider(
             "Number of target items",
-            min_value=1,
-            max_value=50,
-            value=10,
-            step=1,
+            1,
+            50,
+            10,
             key="target_count"
         )
 
-        run_comment_detection = st.checkbox(
-            "Run existing comment detector after simulation",
-            value=True,
-            key="run_comment_detection"
+        run_detector = st.checkbox(
+            "Run existing comment detector",
+            True,
+            key="run_comment_detector"
         )
 
         if st.button(
             "🚨 Simulate Comment Attack",
-            use_container_width=True,
-            key="simulate_comment"
+            use_container_width=True
         ):
 
             if comments is None:
@@ -2765,10 +3148,10 @@ elif page == "Controlled Attack Lab":
 
             else:
 
-                base_comments = comments.copy()
+                base = comments.copy()
 
                 user_col = first_existing_column(
-                    base_comments,
+                    base,
                     [
                         "user_id",
                         "userid",
@@ -2777,7 +3160,7 @@ elif page == "Controlled Attack Lab":
                 )
 
                 item_col = first_existing_column(
-                    base_comments,
+                    base,
                     [
                         "item_id",
                         "item",
@@ -2786,7 +3169,7 @@ elif page == "Controlled Attack Lab":
                 )
 
                 text_col = first_existing_column(
-                    base_comments,
+                    base,
                     [
                         "text",
                         "comment",
@@ -2795,26 +3178,26 @@ elif page == "Controlled Attack Lab":
                     ]
                 )
 
-                comment_id_col = first_existing_column(
-                    base_comments,
+                id_col = first_existing_column(
+                    base,
                     [
                         "comment_id",
                         "id"
                     ]
                 )
 
-                if not text_col:
+                if text_col is None:
 
                     st.error(
-                        "Could not identify the comment text column."
+                        "Comment text column could not be identified."
                     )
 
                 else:
 
                     if item_col:
 
-                        target_items = (
-                            base_comments[item_col]
+                        targets = (
+                            base[item_col]
                             .dropna()
                             .astype(str)
                             .drop_duplicates()
@@ -2824,17 +3207,12 @@ elif page == "Controlled Attack Lab":
 
                     else:
 
-                        target_items = [
-                            "I001"
-                        ]
+                        targets = ["I001"]
 
-                    if not target_items:
+                    if not targets:
+                        targets = ["I001"]
 
-                        target_items = [
-                            "I001"
-                        ]
-
-                    injected_rows = []
+                    rows = []
 
                     for i in range(
                         comment_count
@@ -2842,30 +3220,25 @@ elif page == "Controlled Attack Lab":
 
                         row = {
                             col: ""
-                            for col in base_comments.columns
+                            for col in base.columns
                         }
 
-                        if comment_id_col:
-
-                            row[
-                                comment_id_col
-                            ] = f"ATTACK_C{i}"
+                        if id_col:
+                            row[id_col] = (
+                                f"ATTACK_C{i}"
+                            )
 
                         if user_col:
-
-                            row[
-                                user_col
-                            ] = (
+                            row[user_col] = (
                                 f"CBOT_{(i % 20) + 1:03d}"
                             )
 
                         if item_col:
-
-                            row[
-                                item_col
-                            ] = target_items[
-                                i % len(target_items)
-                            ]
+                            row[item_col] = (
+                                targets[
+                                    i % len(targets)
+                                ]
+                            )
 
                         if comment_style == "Exact duplicate":
 
@@ -2899,7 +3272,7 @@ elif page == "Controlled Attack Lab":
 
                         elif comment_style == "Spam":
 
-                            spam_variants = [
+                            variants = [
                                 "click here for amazing deals",
                                 "buy now amazing offer",
                                 "best deal available now",
@@ -2907,13 +3280,13 @@ elif page == "Controlled Attack Lab":
                                 "amazing product buy now"
                             ]
 
-                            text = spam_variants[
-                                i % len(spam_variants)
+                            text = variants[
+                                i % len(variants)
                             ]
 
                         else:
 
-                            mixed_variants = [
+                            variants = [
                                 comment_text,
                                 comment_text.replace(
                                     "!",
@@ -2927,110 +3300,62 @@ elif page == "Controlled Attack Lab":
                                 )
                             ]
 
-                            text = mixed_variants[
-                                i % len(mixed_variants)
+                            text = variants[
+                                i % len(variants)
                             ]
 
-                        row[
-                            text_col
-                        ] = text
+                        row[text_col] = text
 
-                        for col in base_comments.columns:
+                        rows.append(row)
 
-                            low = col.lower()
-
-                            if (
-                                "attack" in low
-                                and "type" in low
-                            ):
-
-                                row[col] = (
-                                    comment_style
-                                    .upper()
-                                    .replace(
-                                        " ",
-                                        "_"
-                                    )
-                                )
-
-                        injected_rows.append(
-                            row
-                        )
-
-                    injected_comments = pd.DataFrame(
-                        injected_rows,
-                        columns=base_comments.columns
+                    injected = pd.DataFrame(
+                        rows,
+                        columns=base.columns
                     )
 
-                    comments_attacked = pd.concat(
+                    result_df = pd.concat(
                         [
-                            base_comments,
-                            injected_comments
+                            base,
+                            injected
                         ],
                         ignore_index=True
                     )
 
-                    comments_attacked.to_csv(
-                        ATTACK_DATA_DIR
-                        / "comments_attacked.csv",
+                    result_df.to_csv(
+                        ATTACK_DATA_DIR /
+                        "comments_attacked.csv",
                         index=False
                     )
 
-                    injected_comments.to_csv(
-                        ATTACK_DATA_DIR
-                        / "injected_comments.csv",
+                    injected.to_csv(
+                        ATTACK_DATA_DIR /
+                        "injected_comments.csv",
                         index=False
                     )
 
                     st.success(
-                        f"Created {comment_count} synthetic comments successfully."
+                        f"Created {comment_count} synthetic comments."
                     )
 
-                    c1, c2, c3 = st.columns(3)
-
-                    with c1:
-
-                        metric_card(
-                            "ORIGINAL COMMENTS",
-                            f"{len(base_comments):,}",
-                            "Before simulation"
-                        )
-
-                    with c2:
-
-                        metric_card(
-                            "FAKE COMMENTS",
-                            f"{comment_count:,}",
-                            "Synthetic attack records"
-                        )
-
-                    with c3:
-
-                        metric_card(
-                            "FINAL COMMENTS",
-                            f"{len(comments_attacked):,}",
-                            "After simulation"
-                        )
-
                     display_dataframe(
-                        injected_comments.head(100),
+                        injected.head(100),
                         400
                     )
 
-                    if run_comment_detection:
+                    if run_detector:
 
                         detector_candidates = [
-                            BASE_DIR
-                            / "src"
-                            / "detect_comment_attack.py",
+                            BASE_DIR /
+                            "src" /
+                            "detect_comment_attack.py",
 
-                            BASE_DIR
-                            / "src"
-                            / "detect_advanced_comment_attack.py",
+                            BASE_DIR /
+                            "src" /
+                            "detect_advanced_comment_attack.py",
 
-                            BASE_DIR
-                            / "src"
-                            / "detect_coordinated_comment_attack.py"
+                            BASE_DIR /
+                            "src" /
+                            "detect_coordinated_comment_attack.py"
                         ]
 
                         detector = next(
@@ -3044,51 +3369,15 @@ elif page == "Controlled Attack Lab":
 
                         if detector:
 
-                            with st.spinner(
-                                "Running comment detector..."
-                            ):
-
-                                result = subprocess.run(
-                                    [
-                                        sys.executable,
-                                        str(detector)
-                                    ],
-                                    cwd=str(BASE_DIR),
-                                    capture_output=True,
-                                    text=True
-                                )
-
-                            if result.returncode == 0:
-
-                                st.success(
-                                    "Comment detection completed."
-                                )
-
-                                if result.stdout:
-
-                                    st.code(
-                                        result.stdout[-12000:],
-                                        language="text"
-                                    )
-
-                            else:
-
-                                st.error(
-                                    "Comment detector returned an error."
-                                )
-
-                                if result.stderr:
-
-                                    st.code(
-                                        result.stderr[-12000:],
-                                        language="text"
-                                    )
+                            run_detector_process(
+                                detector,
+                                "Comment detector"
+                            )
 
                         else:
 
                             st.info(
-                                "Simulation completed. "
-                                "No compatible comment detector script was found in src/."
+                                "No compatible comment detector was found."
                             )
 
 
@@ -3104,36 +3393,33 @@ elif page == "Controlled Attack Lab":
 
         rating_count = st.slider(
             "Number of synthetic ratings",
-            min_value=1,
-            max_value=300,
-            value=60,
-            step=1,
+            1,
+            300,
+            60,
             key="rating_count"
         )
 
         rating_value = st.selectbox(
             "Injected rating",
             [5, 1],
-            index=0,
             key="rating_value"
         )
 
         target_item = st.text_input(
             "Target item ID",
-            value="I100",
+            "I100",
             key="target_item"
         )
 
-        run_rating_detection = st.checkbox(
-            "Run existing rating detector after simulation",
-            value=True,
-            key="run_rating_detection"
+        run_detector = st.checkbox(
+            "Run existing rating detector",
+            True,
+            key="run_rating_detector"
         )
 
         if st.button(
             "🚨 Simulate Rating Attack",
-            use_container_width=True,
-            key="simulate_rating"
+            use_container_width=True
         ):
 
             if ratings is None:
@@ -3144,10 +3430,10 @@ elif page == "Controlled Attack Lab":
 
             else:
 
-                base_ratings = ratings.copy()
+                base = ratings.copy()
 
                 user_col = first_existing_column(
-                    base_ratings,
+                    base,
                     [
                         "user_id",
                         "userid",
@@ -3156,7 +3442,7 @@ elif page == "Controlled Attack Lab":
                 )
 
                 item_col = first_existing_column(
-                    base_ratings,
+                    base,
                     [
                         "item_id",
                         "item",
@@ -3165,7 +3451,7 @@ elif page == "Controlled Attack Lab":
                 )
 
                 rating_col = first_existing_column(
-                    base_ratings,
+                    base,
                     [
                         "rating",
                         "score",
@@ -3173,23 +3459,23 @@ elif page == "Controlled Attack Lab":
                     ]
                 )
 
-                rating_id_col = first_existing_column(
-                    base_ratings,
+                id_col = first_existing_column(
+                    base,
                     [
                         "rating_id",
                         "id"
                     ]
                 )
 
-                if not rating_col:
+                if rating_col is None:
 
                     st.error(
-                        "Could not identify the rating column in ratings.csv."
+                        "Rating column could not be identified."
                     )
 
                 else:
 
-                    injected_rows = []
+                    rows = []
 
                     for i in range(
                         rating_count
@@ -3197,107 +3483,70 @@ elif page == "Controlled Attack Lab":
 
                         row = {
                             col: ""
-                            for col in base_ratings.columns
+                            for col in base.columns
                         }
 
-                        if rating_id_col:
-
-                            row[
-                                rating_id_col
-                            ] = f"ATTACK_R{i}"
+                        if id_col:
+                            row[id_col] = (
+                                f"ATTACK_R{i}"
+                            )
 
                         if user_col:
-
-                            row[
-                                user_col
-                            ] = (
+                            row[user_col] = (
                                 f"BOT_{(i % 20) + 1:03d}"
                             )
 
                         if item_col:
+                            row[item_col] = target_item
 
-                            row[
-                                item_col
-                            ] = target_item
+                        row[rating_col] = rating_value
 
-                        row[
-                            rating_col
-                        ] = rating_value
+                        rows.append(row)
 
-                        injected_rows.append(
-                            row
-                        )
-
-                    injected_ratings = pd.DataFrame(
-                        injected_rows,
-                        columns=base_ratings.columns
+                    injected = pd.DataFrame(
+                        rows,
+                        columns=base.columns
                     )
 
-                    ratings_attacked = pd.concat(
+                    result_df = pd.concat(
                         [
-                            base_ratings,
-                            injected_ratings
+                            base,
+                            injected
                         ],
                         ignore_index=True
                     )
 
-                    ratings_attacked.to_csv(
-                        ATTACK_DATA_DIR
-                        / "ratings_attacked.csv",
+                    result_df.to_csv(
+                        ATTACK_DATA_DIR /
+                        "ratings_attacked.csv",
                         index=False
                     )
 
-                    injected_ratings.to_csv(
-                        ATTACK_DATA_DIR
-                        / "injected_ratings.csv",
+                    injected.to_csv(
+                        ATTACK_DATA_DIR /
+                        "injected_ratings.csv",
                         index=False
                     )
 
                     st.success(
-                        f"Created {rating_count} synthetic ratings successfully."
+                        f"Created {rating_count} synthetic ratings."
                     )
 
-                    c1, c2, c3 = st.columns(3)
-
-                    with c1:
-
-                        metric_card(
-                            "ORIGINAL RATINGS",
-                            f"{len(base_ratings):,}",
-                            "Before simulation"
-                        )
-
-                    with c2:
-
-                        metric_card(
-                            "FAKE RATINGS",
-                            f"{rating_count:,}",
-                            "Synthetic attack records"
-                        )
-
-                    with c3:
-
-                        metric_card(
-                            "FINAL RATINGS",
-                            f"{len(ratings_attacked):,}",
-                            "After simulation"
-                        )
-
                     display_dataframe(
-                        injected_ratings.head(100),
+                        injected.head(100),
                         400
                     )
 
-                    if run_rating_detection:
+                    if run_detector:
 
                         detector_candidates = [
-                            BASE_DIR
-                            / "src"
-                            / "detect_rating_attack.py",
+                            BASE_DIR /
+                            "src" /
+                            "detect_rating_attack.py",
 
-                            BASE_DIR
-                            / "src"
-                            / "detect_rating_attacks.py"
+                            BASE_DIR /
+                            "src" /
+                            "detect_rating_attacks.py"
                         ]
 
                         detector = next(
@@ -3311,56 +3560,19 @@ elif page == "Controlled Attack Lab":
 
                         if detector:
 
-                            with st.spinner(
-                                "Running rating detector..."
-                            ):
-
-                                result = subprocess.run(
-                                    [
-                                        sys.executable,
-                                        str(detector)
-                                    ],
-                                    cwd=str(BASE_DIR),
-                                    capture_output=True,
-                                    text=True
-                                )
-
-                            if result.returncode == 0:
-
-                                st.success(
-                                    "Rating detection completed."
-                                )
-
-                                if result.stdout:
-
-                                    st.code(
-                                        result.stdout[-12000:],
-                                        language="text"
-                                    )
-
-                            else:
-
-                                st.error(
-                                    "Rating detector returned an error."
-                                )
-
-                                if result.stderr:
-
-                                    st.code(
-                                        result.stderr[-12000:],
-                                        language="text"
-                                    )
+                            run_detector_process(
+                                detector,
+                                "Rating detector"
+                            )
 
                         else:
 
                             st.info(
-                                "Simulation completed. "
-                                "No compatible rating detector script was found in src/."
+                                "No compatible rating detector was found."
                             )
 
-
     # ========================================================
-    # ATTACK FILES
+    # GENERATED FILES
     # ========================================================
 
     st.markdown("---")
@@ -3369,31 +3581,26 @@ elif page == "Controlled Attack Lab":
         "### Generated Attack Files"
     )
 
-    ensure_attack_dirs()
-
-    attack_files = sorted(
+    files = sorted(
         ATTACK_DATA_DIR.glob("*.csv"),
         key=lambda p: p.stat().st_mtime,
         reverse=True
     )
 
-    if attack_files:
+    if files:
 
-        attack_file_rows = []
+        rows = []
 
-        for path in attack_files:
+        for path in files:
 
-            attack_file_rows.append(
+            rows.append(
                 {
-                    "File":
-                        path.name,
-
+                    "File": path.name,
                     "Size (KB)":
                         round(
                             path.stat().st_size / 1024,
                             2
                         ),
-
                     "Modified":
                         datetime.fromtimestamp(
                             path.stat().st_mtime
@@ -3404,9 +3611,7 @@ elif page == "Controlled Attack Lab":
             )
 
         display_dataframe(
-            pd.DataFrame(
-                attack_file_rows
-            ),
+            pd.DataFrame(rows),
             300
         )
 
@@ -3425,7 +3630,7 @@ elif page == "Data Explorer":
 
     section_header(
         "Data Explorer",
-        "Inspect the underlying TrustLens datasets."
+        "Inspect and filter the underlying TrustLens datasets."
     )
 
     datasets = {
@@ -3480,7 +3685,8 @@ elif page == "Data Explorer":
 
     available = [
         name
-        for name, dataframe in datasets.items()
+        for name, dataframe
+        in datasets.items()
         if dataframe is not None
     ]
 
@@ -3499,7 +3705,7 @@ elif page == "Data Explorer":
 
         selected_df = datasets[
             selected_dataset
-        ]
+        ].copy()
 
         c1, c2, c3 = st.columns(3)
 
@@ -3527,12 +3733,49 @@ elif page == "Data Explorer":
                 "Approximate size"
             )
 
-        st.markdown(
-            "### Dataset Preview"
+        # ----------------------------------------------------
+        # SEARCH
+        # ----------------------------------------------------
+
+        search = st.text_input(
+            "🔎 Search dataset",
+            placeholder="Search across all columns..."
+        )
+
+        if search:
+
+            mask = pd.Series(
+                False,
+                index=selected_df.index
+            )
+
+            for column in selected_df.columns:
+
+                mask |= (
+                    selected_df[column]
+                    .astype(str)
+                    .str.contains(
+                        search,
+                        case=False,
+                        na=False,
+                        regex=False
+                    )
+                )
+
+            filtered_df = selected_df[
+                mask
+            ]
+
+        else:
+
+            filtered_df = selected_df
+
+        st.caption(
+            f"Showing {len(filtered_df):,} matching records."
         )
 
         display_dataframe(
-            selected_df.head(200),
+            filtered_df.head(500),
             650
         )
 
@@ -3548,7 +3791,7 @@ render_html(
         🛡️ TRUSTLENS &nbsp;•&nbsp;
         AI-Powered Social Media Authenticity & Security Analysis
 
-        <br>
+        <br><br>
 
         Behavioral Detection • Coordination Analysis •
         Rating Security • Recommendation Integrity
