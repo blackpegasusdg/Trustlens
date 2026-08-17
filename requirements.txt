@@ -12,3 +12,5 @@ fastapi
 uvicorn
 pandas
 pydantic
+sqlalchemy
+psycopg2-binary

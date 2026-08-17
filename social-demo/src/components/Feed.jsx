@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import CreatePost from "./CreatePost";
 import TrustLensDashboard from "./TrustLensDashboard";
 
@@ -6,26 +6,181 @@ const BACKEND_URL = "https://trustlens-9idp.onrender.com";
 
 function Feed({ user, onLogout }) {
 
-  const [posts, setPosts] = useState([
-    {
-      id: "initial-1",
-      user: "Alex",
-      text: "Amazing product! Everyone should try this.",
-      likes: 24,
-      comments: 5,
-      analysis: null
-    },
-    {
-      id: "initial-2",
-      user: "Rahul",
-      text: "This news is completely unbelievable!",
-      likes: 12,
-      comments: 3,
-      analysis: null
-    }
-  ]);
+  // ============================================================
+  // POSTS
+  // ============================================================
+
+  const [posts, setPosts] = useState([]);
 
   const [showDashboard, setShowDashboard] = useState(false);
+
+  const [loadingPosts, setLoadingPosts] = useState(true);
+
+
+  // ============================================================
+  // LOAD SAVED POSTS FROM BACKEND
+  // ============================================================
+
+  useEffect(() => {
+
+    const loadPosts = async () => {
+
+      try {
+
+        console.log("Loading posts from TrustLens backend...");
+
+        const response = await fetch(
+          `${BACKEND_URL}/posts`
+        );
+
+        if (!response.ok) {
+
+          throw new Error(
+            `Server returned ${response.status}`
+          );
+
+        }
+
+        const backendPosts = await response.json();
+
+        console.log(
+          "Posts received from backend:",
+          backendPosts
+        );
+
+
+        // ======================================================
+        // LOAD ANALYSIS DATA
+        // ======================================================
+
+        let analysisData = [];
+
+        try {
+
+          const analysisResponse = await fetch(
+            `${BACKEND_URL}/analysis`
+          );
+
+          if (analysisResponse.ok) {
+
+            analysisData =
+              await analysisResponse.json();
+
+            console.log(
+              "Analysis received:",
+              analysisData
+            );
+
+          }
+
+        } catch (analysisError) {
+
+          console.warn(
+            "Could not load analysis:",
+            analysisError
+          );
+
+        }
+
+
+        // ======================================================
+        // COMBINE POSTS + ANALYSIS
+        // ======================================================
+
+        const formattedPosts =
+          backendPosts.map((post) => {
+
+            const analysis =
+              analysisData.find(
+                (item) =>
+                  String(item.post_id) ===
+                  String(post.post_id)
+              );
+
+
+            return {
+
+              id:
+                post.post_id ||
+                `POST_${Date.now()}`,
+
+              user:
+                post.user_id ||
+                "Unknown",
+
+              text:
+                post.text ||
+                "",
+
+              likes:
+                Number(post.likes) || 0,
+
+              comments:
+                Number(post.comments) || 0,
+
+              timestamp:
+                post.timestamp,
+
+              analysis:
+                analysis
+                  ? {
+                      spam_score:
+                        Number(
+                          analysis.spam_score
+                        ) || 0,
+
+                      duplicate_score:
+                        Number(
+                          analysis.duplicate_score
+                        ) || 0,
+
+                      risk_score:
+                        Number(
+                          analysis.risk_score
+                        ) || 0,
+
+                      risk_level:
+                        analysis.risk_level ||
+                        "LOW",
+
+                      suspicious:
+                        analysis.suspicious === true ||
+                        String(
+                          analysis.suspicious
+                        ).toLowerCase() === "true"
+                    }
+                  : null
+            };
+
+          });
+
+
+        // ======================================================
+        // PUT SAVED POSTS INTO REACT STATE
+        // ======================================================
+
+        setPosts(formattedPosts);
+
+      } catch (error) {
+
+        console.error(
+          "Failed to load posts:",
+          error
+        );
+
+      } finally {
+
+        setLoadingPosts(false);
+
+      }
+
+    };
+
+
+    loadPosts();
+
+  }, []);
+
 
   // ============================================================
   // SEND POST TO TRUSTLENS BACKEND
@@ -35,10 +190,14 @@ function Feed({ user, onLogout }) {
 
     try {
 
-      console.log("Sending post to TrustLens:", {
-        user,
-        text
-      });
+      console.log(
+        "Sending post to TrustLens:",
+        {
+          user,
+          text
+        }
+      );
+
 
       const response = await fetch(
         `${BACKEND_URL}/posts`,
@@ -56,20 +215,24 @@ function Feed({ user, onLogout }) {
         }
       );
 
-      // --------------------------------------------------------
-      // READ RESPONSE
-      // --------------------------------------------------------
 
-      const result = await response.json();
+      // ========================================================
+      // READ RESPONSE
+      // ========================================================
+
+      const result =
+        await response.json();
+
 
       console.log(
         "TrustLens backend response:",
         result
       );
 
-      // --------------------------------------------------------
-      // HANDLE BACKEND ERROR
-      // --------------------------------------------------------
+
+      // ========================================================
+      // HANDLE ERROR
+      // ========================================================
 
       if (!response.ok) {
 
@@ -80,6 +243,7 @@ function Feed({ user, onLogout }) {
 
       }
 
+
       if (result.success === false) {
 
         throw new Error(
@@ -89,12 +253,14 @@ function Feed({ user, onLogout }) {
 
       }
 
-      // --------------------------------------------------------
-      // GET POST DATA
-      // --------------------------------------------------------
+
+      // ========================================================
+      // GET BACKEND POST
+      // ========================================================
 
       const backendPost =
         result.post || {};
+
 
       const analysis =
         result.analysis || null;
@@ -106,9 +272,9 @@ function Feed({ user, onLogout }) {
       );
 
 
-      // --------------------------------------------------------
-      // CREATE LOCAL POST OBJECT
-      // --------------------------------------------------------
+      // ========================================================
+      // CREATE POST OBJECT
+      // ========================================================
 
       const newPost = {
 
@@ -125,39 +291,42 @@ function Feed({ user, onLogout }) {
           backendPost.text ||
           text,
 
-        likes: 0,
+        likes:
+          Number(backendPost.likes) || 0,
 
-        comments: 0,
+        comments:
+          Number(backendPost.comments) || 0,
 
-        analysis: analysis
+        timestamp:
+          backendPost.timestamp ||
+          new Date().toISOString(),
+
+        analysis:
+          analysis
 
       };
 
 
       console.log(
-        "Adding post to social feed:",
+        "Adding post:",
         newPost
       );
 
 
-      // --------------------------------------------------------
+      // ========================================================
       // ADD TO FEED
-      // --------------------------------------------------------
+      // ========================================================
 
-      setPosts((previousPosts) => [
+      setPosts(
+        (previousPosts) => [
+          newPost,
+          ...previousPosts
+        ]
+      );
 
-        newPost,
-
-        ...previousPosts
-
-      ]);
-
-
-      // --------------------------------------------------------
-      // RETURN RESULT TO CREATE POST
-      // --------------------------------------------------------
 
       return result;
+
 
     } catch (error) {
 
@@ -166,7 +335,6 @@ function Feed({ user, onLogout }) {
         error
       );
 
-      // Let CreatePost handle the error
       throw error;
 
     }
@@ -180,11 +348,45 @@ function Feed({ user, onLogout }) {
 
   const handleLogout = () => {
 
-    setPosts([]);
+    /*
+     * IMPORTANT:
+     *
+     * Do NOT delete the posts here.
+     *
+     * Posts are stored in the backend.
+     * Logging out should only log the user out.
+     */
 
     onLogout();
 
   };
+
+
+  // ============================================================
+  // LOADING SCREEN
+  // ============================================================
+
+  if (loadingPosts) {
+
+    return (
+
+      <div className="social-app">
+
+        <main className="feed-container">
+
+          <div className="loading">
+
+            Loading TrustLens feed...
+
+          </div>
+
+        </main>
+
+      </div>
+
+    );
+
+  }
 
 
   // ============================================================
@@ -212,7 +414,9 @@ function Feed({ user, onLogout }) {
         <div className="nav-user">
 
           <span>
+
             @{user}
+
           </span>
 
 
@@ -279,6 +483,21 @@ function Feed({ user, onLogout }) {
 
 
             {/* ==================================================
+                NO POSTS
+            ================================================== */}
+
+            {posts.length === 0 && (
+
+              <div className="empty-feed">
+
+                No posts yet.
+
+              </div>
+
+            )}
+
+
+            {/* ==================================================
                 POSTS
             ================================================== */}
 
@@ -296,7 +515,6 @@ function Feed({ user, onLogout }) {
 
                 <div className="post-header">
 
-
                   <div className="avatar">
 
                     {post.user
@@ -309,8 +527,11 @@ function Feed({ user, onLogout }) {
                   <div>
 
                     <strong>
+
                       {post.user}
+
                     </strong>
+
 
                     <span className="username">
 
@@ -319,7 +540,6 @@ function Feed({ user, onLogout }) {
                     </span>
 
                   </div>
-
 
                 </div>
 
@@ -342,7 +562,6 @@ function Feed({ user, onLogout }) {
                 {post.analysis && (
 
                   <div className="trustlens-result">
-
 
                     <strong>
 
@@ -382,7 +601,8 @@ function Feed({ user, onLogout }) {
 
                       Risk Level:{" "}
 
-                      {post.analysis.risk_level ?? "UNKNOWN"}
+                      {post.analysis.risk_level ??
+                        "UNKNOWN"}
 
                     </div>
 
@@ -399,7 +619,6 @@ function Feed({ user, onLogout }) {
 
                     </div>
 
-
                   </div>
 
                 )}
@@ -410,7 +629,6 @@ function Feed({ user, onLogout }) {
                 ================================================== */}
 
                 <div className="post-actions">
-
 
                   <span>
 
@@ -432,14 +650,12 @@ function Feed({ user, onLogout }) {
 
                   </span>
 
-
                 </div>
 
 
               </div>
 
             ))}
-
 
           </>
 
@@ -463,5 +679,6 @@ function Feed({ user, onLogout }) {
   );
 
 }
+
 
 export default Feed;
