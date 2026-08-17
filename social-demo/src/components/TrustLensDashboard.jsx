@@ -1,32 +1,32 @@
 import { useEffect, useState } from "react";
 
-const API_URL = "https://trustlens-9idp.onrender.com";
+const BACKEND_URL = "https://trustlens-9idp.onrender.com";
 
 function TrustLensDashboard({ posts = [] }) {
 
-  const [livePosts, setLivePosts] = useState(posts);
+  const [backendPosts, setBackendPosts] = useState([]);
+  const [backendAnalysis, setBackendAnalysis] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   // ============================================================
-  // LOAD LIVE DATA FROM TRUSTLENS BACKEND
+  // LOAD DATA FROM TRUSTLENS BACKEND
   // ============================================================
 
   const loadTrustLensData = async () => {
 
     try {
 
+      setLoading(true);
       setError("");
+
+      console.log("Loading TrustLens data...");
 
       const [postsResponse, analysisResponse] =
         await Promise.all([
-
-          fetch(`${API_URL}/posts`),
-
-          fetch(`${API_URL}/analysis`)
-
+          fetch(`${BACKEND_URL}/posts`),
+          fetch(`${BACKEND_URL}/analysis`)
         ]);
-
 
       if (!postsResponse.ok) {
         throw new Error(
@@ -34,104 +34,39 @@ function TrustLensDashboard({ posts = [] }) {
         );
       }
 
-
       if (!analysisResponse.ok) {
         throw new Error(
           `Analysis API returned ${analysisResponse.status}`
         );
       }
 
-
-      const backendPosts =
+      const postsData =
         await postsResponse.json();
 
-      const backendAnalysis =
+      const analysisData =
         await analysisResponse.json();
-
 
       console.log(
         "TrustLens backend posts:",
-        backendPosts
+        postsData
       );
 
       console.log(
         "TrustLens backend analysis:",
-        backendAnalysis
+        analysisData
       );
 
-
-      // ========================================================
-      // MERGE POSTS + ANALYSIS
-      // ========================================================
-
-      const mergedPosts = backendPosts.map(
-        (post) => {
-
-          const analysis =
-            backendAnalysis.find(
-              (item) =>
-                String(item.post_id) ===
-                String(post.post_id)
-            );
-
-
-          return {
-
-            id:
-              post.post_id,
-
-            user:
-              post.user_id,
-
-            text:
-              post.text,
-
-            likes:
-              Number(post.likes) || 0,
-
-            comments:
-              Number(post.comments) || 0,
-
-            timestamp:
-              post.timestamp,
-
-            analysis:
-              analysis
-                ? {
-                    spam_score:
-                      Number(
-                        analysis.spam_score
-                      ),
-
-                    duplicate_score:
-                      Number(
-                        analysis.duplicate_score
-                      ),
-
-                    risk_score:
-                      Number(
-                        analysis.risk_score
-                      ),
-
-                    risk_level:
-                      analysis.risk_level,
-
-                    suspicious:
-                      analysis.suspicious === true ||
-                      String(
-                        analysis.suspicious
-                      ).toLowerCase() === "true"
-                  }
-                : null
-
-          };
-
-        }
+      setBackendPosts(
+        Array.isArray(postsData)
+          ? postsData
+          : []
       );
 
-
-      setLivePosts(mergedPosts);
-
+      setBackendAnalysis(
+        Array.isArray(analysisData)
+          ? analysisData
+          : []
+      );
 
     } catch (err) {
 
@@ -141,7 +76,8 @@ function TrustLensDashboard({ posts = [] }) {
       );
 
       setError(
-        "Unable to load live TrustLens analysis."
+        err.message ||
+        "Unable to connect to TrustLens backend"
       );
 
     } finally {
@@ -165,19 +101,49 @@ function TrustLensDashboard({ posts = [] }) {
 
 
   // ============================================================
-  // REFRESH EVERY 5 SECONDS
+  // COMBINE POSTS + ANALYSIS
   // ============================================================
 
-  useEffect(() => {
+  const analyzedPosts = backendPosts.map((post) => {
 
-    const interval = setInterval(
-      loadTrustLensData,
-      5000
-    );
+    const analysis =
+      backendAnalysis.find(
+        (item) =>
+          String(item.post_id) ===
+          String(post.post_id)
+      );
 
-    return () => clearInterval(interval);
+    return {
 
-  }, []);
+      id: post.post_id,
+
+      user:
+        post.user_id || "Unknown",
+
+      text:
+        post.text || "",
+
+      likes:
+        Number(post.likes || 0),
+
+      comments:
+        Number(post.comments || 0),
+
+      analysis: analysis || null
+
+    };
+
+  });
+
+
+  // ============================================================
+  // FALLBACK TO LOCAL POSTS
+  // ============================================================
+
+  const displayPosts =
+    analyzedPosts.length > 0
+      ? analyzedPosts
+      : posts;
 
 
   // ============================================================
@@ -185,41 +151,35 @@ function TrustLensDashboard({ posts = [] }) {
   // ============================================================
 
   const totalPosts =
-    livePosts.length;
+    displayPosts.length;
 
 
-  const analyzedPosts =
-    livePosts.filter(
+  const analyzed =
+    displayPosts.filter(
       (post) => post.analysis
     );
 
 
   const suspiciousPosts =
-    analyzedPosts.filter(
+    analyzed.filter(
       (post) =>
-        post.analysis?.suspicious === true
+        post.analysis?.suspicious === true ||
+        post.analysis?.suspicious === "true"
     ).length;
 
 
   const safePosts =
-    analyzedPosts.length -
+    analyzed.length -
     suspiciousPosts;
 
 
-  // ============================================================
-  // AVERAGE RISK
-  // ============================================================
-
   const riskScores =
-    analyzedPosts
-
-      .map(
-        (post) =>
-          Number(
-            post.analysis?.risk_score
-          )
+    analyzed
+      .map((post) =>
+        Number(
+          post.analysis?.risk_score
+        )
       )
-
       .filter(
         (score) =>
           !isNaN(score)
@@ -228,15 +188,14 @@ function TrustLensDashboard({ posts = [] }) {
 
   const averageRisk =
     riskScores.length > 0
-
       ? Math.round(
           riskScores.reduce(
             (sum, score) =>
               sum + score,
             0
-          ) / riskScores.length
+          ) /
+          riskScores.length
         )
-
       : 0;
 
 
@@ -244,19 +203,15 @@ function TrustLensDashboard({ posts = [] }) {
   // OVERALL RISK
   // ============================================================
 
-  let overallRisk =
-    "LOW";
-
+  let overallRisk = "LOW";
 
   if (averageRisk >= 70) {
 
-    overallRisk =
-      "HIGH";
+    overallRisk = "HIGH";
 
   } else if (averageRisk >= 40) {
 
-    overallRisk =
-      "MEDIUM";
+    overallRisk = "MEDIUM";
 
   }
 
@@ -278,8 +233,43 @@ function TrustLensDashboard({ posts = [] }) {
           </h2>
 
           <p>
-            Loading live TrustLens data...
+            🔄 Loading live TrustLens data...
           </p>
+
+        </div>
+
+      </div>
+
+    );
+
+  }
+
+
+  // ============================================================
+  // ERROR
+  // ============================================================
+
+  if (error) {
+
+    return (
+
+      <div className="dashboard">
+
+        <div className="analysis-card">
+
+          <h2>
+            TrustLens Analysis
+          </h2>
+
+          <p>
+            ⚠️ {error}
+          </p>
+
+          <button
+            onClick={loadTrustLensData}
+          >
+            Retry
+          </button>
 
         </div>
 
@@ -317,29 +307,13 @@ function TrustLensDashboard({ posts = [] }) {
 
         </div>
 
-
         <div className="status">
+
           ● LIVE ANALYSIS
+
         </div>
 
       </div>
-
-
-      {/* ======================================================
-          ERROR
-      ====================================================== */}
-
-      {error && (
-
-        <div className="analysis-card">
-
-          <strong>
-            ⚠️ {error}
-          </strong>
-
-        </div>
-
-      )}
 
 
       {/* ======================================================
@@ -413,61 +387,41 @@ function TrustLensDashboard({ posts = [] }) {
           Detection Pipeline
         </h2>
 
-
         <div className="pipeline">
 
           <div>
-
             <b>01</b>
-
             <span>
               Content Collection
             </span>
-
           </div>
 
-
           <div>
-
             <b>02</b>
-
             <span>
               Text Analysis
             </span>
-
           </div>
 
-
           <div>
-
             <b>03</b>
-
             <span>
               Behavior Analysis
             </span>
-
           </div>
 
-
           <div>
-
             <b>04</b>
-
             <span>
               Coordination Detection
             </span>
-
           </div>
 
-
           <div>
-
             <b>05</b>
-
             <span>
               Risk Scoring
             </span>
-
           </div>
 
         </div>
@@ -485,7 +439,6 @@ function TrustLensDashboard({ posts = [] }) {
           Overall TrustLens Risk
         </h2>
 
-
         <div className="overall-risk">
 
           <strong>
@@ -493,17 +446,10 @@ function TrustLensDashboard({ posts = [] }) {
           </strong>
 
           <p>
-
-            Based on{" "}
-
-            {analyzedPosts.length}
-
-            {" "}analyzed post
-
-            {analyzedPosts.length !== 1
+            Based on {analyzed.length} analyzed post
+            {analyzed.length !== 1
               ? "s"
               : ""}
-
           </p>
 
         </div>
@@ -522,7 +468,7 @@ function TrustLensDashboard({ posts = [] }) {
         </h2>
 
 
-        {livePosts.length === 0 && (
+        {displayPosts.length === 0 && (
 
           <p>
             No posts available.
@@ -531,131 +477,157 @@ function TrustLensDashboard({ posts = [] }) {
         )}
 
 
-        {livePosts.map(
-          (post) => {
+        {displayPosts.map((post) => {
 
-            const analysis =
-              post.analysis;
-
-
-            const suspicious =
-              analysis?.suspicious === true;
+          const analysis =
+            post.analysis;
 
 
-            const riskScore =
-              analysis?.risk_score ?? 0;
+          const suspicious =
+            analysis?.suspicious === true ||
+            analysis?.suspicious === "true";
 
 
-            const riskLevel =
-              analysis?.risk_level ??
-              "NOT ANALYZED";
+          const riskScore =
+            Number(
+              analysis?.risk_score || 0
+            );
 
 
-            return (
-
-              <div
-                className="result-row"
-                key={post.id}
-              >
+          const riskLevel =
+            analysis?.risk_level ||
+            "NOT ANALYZED";
 
 
-                {/* POST */}
+          return (
 
-                <div>
-
-                  <strong>
-                    {post.user}
-                  </strong>
-
-                  <p>
-                    {post.text}
-                  </p>
-
-                </div>
+            <div
+              className="result-row"
+              key={post.id}
+            >
 
 
-                {/* ANALYSIS */}
+              {/* POST */}
 
-                <div className="result-analysis">
+              <div>
 
-                  {analysis ? (
+                <strong>
+                  {post.user}
+                </strong>
 
-                    <>
-
-                      <div>
-                        Spam Score:{" "}
-
-                        <strong>
-                          {analysis.spam_score}
-                        </strong>
-
-                      </div>
-
-
-                      <div>
-                        Duplicate Score:{" "}
-
-                        <strong>
-                          {analysis.duplicate_score}
-                        </strong>
-
-                      </div>
-
-
-                      <div>
-                        Risk Score:{" "}
-
-                        <strong>
-                          {riskScore}
-                        </strong>
-
-                      </div>
-
-
-                      <div>
-                        Risk Level:{" "}
-
-                        <strong>
-                          {riskLevel}
-                        </strong>
-
-                      </div>
-
-
-                      <div
-                        className={
-                          suspicious
-                            ? "risk-badge medium"
-                            : "risk-badge low"
-                        }
-                      >
-
-                        {suspicious
-                          ? "⚠️ SUSPICIOUS"
-                          : "✅ SAFE"}
-
-                      </div>
-
-                    </>
-
-                  ) : (
-
-                    <div className="risk-badge">
-
-                      NOT ANALYZED
-
-                    </div>
-
-                  )}
-
-                </div>
+                <p>
+                  {post.text}
+                </p>
 
               </div>
 
-            );
 
-          }
-        )}
+              {/* ANALYSIS */}
+
+              <div className="result-analysis">
+
+                {analysis ? (
+
+                  <>
+
+                    <div>
+
+                      Risk Score:{" "}
+
+                      <strong>
+                        {riskScore}
+                      </strong>
+
+                    </div>
+
+
+                    <div>
+
+                      Risk Level:{" "}
+
+                      <strong>
+                        {riskLevel}
+                      </strong>
+
+                    </div>
+
+
+                    <div>
+
+                      Spam Score:{" "}
+
+                      <strong>
+                        {analysis.spam_score ?? 0}
+                      </strong>
+
+                    </div>
+
+
+                    <div>
+
+                      Duplicate Score:{" "}
+
+                      <strong>
+                        {analysis.duplicate_score ?? 0}
+                      </strong>
+
+                    </div>
+
+
+                    <div
+                      className={
+                        suspicious
+                          ? "risk-badge medium"
+                          : "risk-badge low"
+                      }
+                    >
+
+                      {suspicious
+                        ? "⚠️ SUSPICIOUS"
+                        : "✅ SAFE"}
+
+                    </div>
+
+                  </>
+
+                ) : (
+
+                  <div className="risk-badge">
+
+                    NOT ANALYZED
+
+                  </div>
+
+                )}
+
+              </div>
+
+            </div>
+
+          );
+
+        })}
+
+
+      </div>
+
+
+      {/* ======================================================
+          REFRESH
+      ====================================================== */}
+
+      <div
+        style={{
+          marginTop: "20px",
+          textAlign: "center"
+        }}
+      >
+
+        <button
+          onClick={loadTrustLensData}
+        >
+          🔄 Refresh TrustLens Data
+        </button>
 
       </div>
 
