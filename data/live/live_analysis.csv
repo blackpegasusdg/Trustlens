@@ -1,0 +1,7 @@
+post_id,user_id,text,timestamp,spam_score,duplicate_score,risk_score,risk_level,suspicious
+POST_CD9FB8840A,dip,"Hello everyone, this is a normal post.",2026-08-17T11:37:33.079303,0,0,0.0,LOW,False
+POST_30B1C833CC,dip,normal post,2026-08-17T11:40:01.322472,0,0,0.0,LOW,False
+POST_92F9B4E34E,dip,normal post,2026-08-17T11:44:22.184835,0,100,50.0,MEDIUM,True
+POST_577BAFB2C3,dip,normal post,2026-08-17T11:46:12.913882,0,100,50.0,MEDIUM,True
+POST_FB0DF24C71,dip,normal,2026-08-17T11:51:08.900312,0,0,0.0,LOW,False
+POST_C38936B04C,dip,wow mam,2026-08-17T11:58:58.030610,0,0,0.0,LOW,False
